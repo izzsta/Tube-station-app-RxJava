@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.example.android.citymapperchallenge.R;
-import com.example.android.citymapperchallenge.model.NearbyStationDetails;
 import com.example.android.citymapperchallenge.nearbyStations.StopPoint;
 
 import java.util.ArrayList;
@@ -18,11 +17,11 @@ import butterknife.ButterKnife;
 
 public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndArrivalsAdapter.ViewHolder>{
 
-    private ArrayList<NearbyStationDetails> mNearbyDetails;
+    private ArrayList<StopPoint> mNearbyDetails;
     private Context mContext;
     private DetailsAdapterListener mClickHandler;
 
-    public StationAndArrivalsAdapter(Context c, ArrayList<NearbyStationDetails> nearbyDetails,
+    public StationAndArrivalsAdapter(Context c, ArrayList<StopPoint> nearbyDetails,
                                      DetailsAdapterListener clickHandler) {
         mNearbyDetails = nearbyDetails;
         mContext = c;
@@ -41,12 +40,12 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
 
     @Override
     public void onBindViewHolder(StationAndArrivalsAdapter.ViewHolder holder, int position) {
-        NearbyStationDetails nearbyStation = mNearbyDetails.get(position);
-        String stationName = nearbyStation.getStation();
-        String arrivals = nearbyStation.getArrivals().toString();
+        StopPoint stopPoint = mNearbyDetails.get(position);
+        String stationName = stopPoint.getCommonName();
+        String naptanId = stopPoint.getNaptanId();
 
         holder.mStationTv.setText(stationName);
-        holder.mNaptanId.setText(arrivals);
+        holder.mNaptanId.setText(naptanId);
     }
 
     @Override
@@ -54,7 +53,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
         return mNearbyDetails.size();
     }
 
-    public void setRecipesToAdapter(ArrayList<NearbyStationDetails> nearbyStations){
+    public void setStationsToAdapter(ArrayList<StopPoint> nearbyStations){
         mNearbyDetails = nearbyStations;
         notifyDataSetChanged();
     }

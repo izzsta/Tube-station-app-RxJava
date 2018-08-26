@@ -18,11 +18,15 @@ import com.example.android.citymapperchallenge.retrofit.App;
 import com.example.android.citymapperchallenge.retrofit.InternetConnectionListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -55,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
-        //TODO: make sure this survives configuration changes
+        //TODO: make sure this survives configuration changes, and dispose of subscribers if necc
 
         //set up recyclerView
         mLayoutManager = new LinearLayoutManager(this);
@@ -63,129 +67,167 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         mRecyclerView.setHasFixedSize(true);
 
         //set to data adapter
-        mAdapter = new StationAndArrivalsAdapter(this, new ArrayList<NearbyStationDetails>(0),
+        mAdapter = new StationAndArrivalsAdapter(this, new ArrayList<StopPoint>(0),
                 this);
         mRecyclerView.setAdapter(mAdapter);
 
         //load data for adapter
         ((App) getApplication()).setInternetConnectionListener(this);
-        loadNearbyStationsAndArrivals();
+        //loadNearbyStationsAndArrivals();
+
+        loadDataRxJava();
     }
 
-    //load stations and arrivals using Retrofit on background thread
-    private void loadNearbyStationsAndArrivals(){
-        ((App) getApplication()).getService().getNearbyStations()
-                .enqueue(getStationsWithinRadius());
-    }
 
-    private Callback<StationsWithinRadius> getStationsWithinRadius() {
-        return new Callback<StationsWithinRadius>(){
+    private void loadDataRxJava(){
+        Observable<StationsWithinRadius> observable = ((App) getApplication()).getService().getNearbyStations();
 
-            @Override
-            public void onResponse(Call<StationsWithinRadius> call, Response<StationsWithinRadius> response) {
-                if (response.isSuccessful()) {
-                    mNearestStopsTv.setVisibility(View.VISIBLE);
-                    mNoInternetTv.setVisibility(View.GONE);
 
-                    StationsWithinRadius stationsFound = response.body();
-                    listStopPoints = (ArrayList<StopPoint>) stationsFound.getStopPoints();
+        observable
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<StationsWithinRadius>(){
 
-                    //end target is an array of NearbyStationDetail objects
-                    mNearbyDetails = new ArrayList<>();
 
-                    //for each stop point, get station name, distance and naptanID
-                    int numberOfNearbyStations = listStopPoints.size();
+                    @Override
+                    public void onSubscribe(Disposable d) {
 
-                    for (int i=0; i<numberOfNearbyStations; i++) {
-
-                        nextThreeArrivals.clear();
-                        NearbyStationDetails foundDetails = new NearbyStationDetails();
-                        StopPoint stopPoint = listStopPoints.get(i);
-                        foundDetails.setStation(stopPoint.getCommonName());
-                        String naptanId = stopPoint.getNaptanId();
-                        foundDetails.setNaptanId(naptanId);
-                        foundDetails.setDistance(stopPoint.getDistance());
-
-                        //use naptanID to query the arrivals end point
-                        ((App) getApplication()).getService().getNextArrivals(naptanId)
-                                .enqueue(getNextTenTrains());
-
-                        foundDetails.setArrivals(nextThreeArrivals);
-                        mNearbyDetails.add(foundDetails);
                     }
 
-                    mAdapter.setRecipesToAdapter(mNearbyDetails);
+                    @Override
+                    public void onNext(StationsWithinRadius stationsWithinRadius) {
+                        ArrayList<StopPoint> foundStopPoints = (ArrayList<StopPoint>)
+                                stationsWithinRadius.getStopPoints();
+                        mAdapter.setStationsToAdapter(foundStopPoints);
+                        //mNearestStopsTv.setText(stationsWithinRadius.get$type());
+                    }
 
-                    Log.d(LOG_TAG, "nearest stops loaded from API");
-                } else {
-                    int statusCode = response.code();
-                    Log.d(LOG_TAG, "failed with status: " + statusCode);
-                }
-            }
+                    @Override
+                    public void onError(Throwable e) {
 
-            @Override
-            public void onFailure(Call<StationsWithinRadius> call, Throwable t) {
-                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
+                    }
 
-            }
-        };
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
     }
 
-
-
-    private Callback<List<NextTenTrains>> getNextTenTrains(){
-        return new Callback<List<NextTenTrains>>() {
-            @Override
-            public void onResponse(Call<List<NextTenTrains>> call, Response<List<NextTenTrains>> responseTwo) {
-                if (responseTwo.isSuccessful()) {
-                    mNextArrivalsTv.setVisibility(View.VISIBLE);
-                    mNoInternetTv.setVisibility(View.GONE);
-
-                    List<NextTenTrains> nextTenTrainsList = responseTwo.body();
-
-//                    nextArrivalsJson = responseTwo.body().toString();
-//                    mNextArrivalsTv.setText(nextArrivalsJson);
-
+//    //load stations and arrivals using Retrofit on background thread
+//    private void loadNearbyStationsAndArrivals(){
+//        ((App) getApplication()).getService().getNearbyStations()
+//                .enqueue(getStationsWithinRadius());
+//    }
+//
+//    private Callback<StationsWithinRadius> getStationsWithinRadius() {
+//        return new Callback<StationsWithinRadius>(){
+//
+//            @Override
+//            public void onResponse(Call<StationsWithinRadius> call, Response<StationsWithinRadius> response) {
+//                if (response.isSuccessful()) {
+//                    mNearestStopsTv.setVisibility(View.VISIBLE);
+//                    mNoInternetTv.setVisibility(View.GONE);
+//
+//                    StationsWithinRadius stationsFound = response.body();
+//                    listStopPoints = (ArrayList<StopPoint>) stationsFound.getStopPoints();
+//
+//                    //end target is an array of NearbyStationDetail objects
 //                    mNearbyDetails = new ArrayList<>();
+//
+//                    //for each stop point, get station name, distance and naptanID
 //                    int numberOfNearbyStations = listStopPoints.size();
 //
-//                    for (int i=0; i<numberOfNearbyStations; i++){
+//                    for (int i=0; i<numberOfNearbyStations; i++) {
 //
-//                        //NearbyStationDetails foundDetails = new NearbyStationDetails();
+//                        nextThreeArrivals.clear();
+//                        NearbyStationDetails foundDetails = new NearbyStationDetails();
 //                        StopPoint stopPoint = listStopPoints.get(i);
 //                        foundDetails.setStation(stopPoint.getCommonName());
-//                        foundDetails.setNaptanId(stopPoint.getNaptanId());
+//                        String naptanId = stopPoint.getNaptanId();
+//                        foundDetails.setNaptanId(naptanId);
 //                        foundDetails.setDistance(stopPoint.getDistance());
-
-                        //create method to feed in naptan ID and get list of arrivals for each station
-//                        nextThreeArrivals = new ArrayList<>();
-                        for (int j=0; j<3; j++){
-                            NextTenTrains foundTrain = nextTenTrainsList.get(j);
-                            String lineId = foundTrain.getLineId();
-                            String lineName = foundTrain.getLineName();
-                            long time = foundTrain.getTimeToStation();
-                            ArrivalLineTime arrival = new ArrivalLineTime(lineId, lineName, time);
-                            nextThreeArrivals.add(arrival);
-                            Log.d(LOG_TAG, "arrival added" + lineId + lineName + time);
-                        }
-                    //need to create an array of objects containing station name,
-                    //naptanID, distance, next three arrivals and their tube lines
-
-
-                    Log.d(LOG_TAG, "next arrivals loaded from API");
-                } else {
-                    int statusCode = responseTwo.code();
-                    Log.d(LOG_TAG, "failed with status: " + statusCode);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<NextTenTrains>> call, Throwable t) {
-                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
-
-            }
-        };
-    }
+//
+//                        //use naptanID to query the arrivals end point
+//                        ((App) getApplication()).getService().getNextArrivals(naptanId)
+//                                .enqueue(getNextTenTrains());
+//
+//                        foundDetails.setArrivals(nextThreeArrivals);
+//                        mNearbyDetails.add(foundDetails);
+//                    }
+//
+//                    //mAdapter.setRecipesToAdapter(mNearbyDetails);
+//
+//                    Log.d(LOG_TAG, "nearest stops loaded from API");
+//                } else {
+//                    int statusCode = response.code();
+//                    Log.d(LOG_TAG, "failed with status: " + statusCode);
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<StationsWithinRadius> call, Throwable t) {
+//                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
+//
+//            }
+//        };
+//    }
+//
+//
+//
+//    private Callback<List<NextTenTrains>> getNextTenTrains(){
+//        return new Callback<List<NextTenTrains>>() {
+//            @Override
+//            public void onResponse(Call<List<NextTenTrains>> call, Response<List<NextTenTrains>> responseTwo) {
+//                if (responseTwo.isSuccessful()) {
+//                    mNextArrivalsTv.setVisibility(View.VISIBLE);
+//                    mNoInternetTv.setVisibility(View.GONE);
+//
+//                    List<NextTenTrains> nextTenTrainsList = responseTwo.body();
+//
+////                    nextArrivalsJson = responseTwo.body().toString();
+////                    mNextArrivalsTv.setText(nextArrivalsJson);
+//
+////                    mNearbyDetails = new ArrayList<>();
+////                    int numberOfNearbyStations = listStopPoints.size();
+////
+////                    for (int i=0; i<numberOfNearbyStations; i++){
+////
+////                        //NearbyStationDetails foundDetails = new NearbyStationDetails();
+////                        StopPoint stopPoint = listStopPoints.get(i);
+////                        foundDetails.setStation(stopPoint.getCommonName());
+////                        foundDetails.setNaptanId(stopPoint.getNaptanId());
+////                        foundDetails.setDistance(stopPoint.getDistance());
+//
+//                        //create method to feed in naptan ID and get list of arrivals for each station
+////                        nextThreeArrivals = new ArrayList<>();
+//                        for (int j=0; j<3; j++){
+//                            NextTenTrains foundTrain = nextTenTrainsList.get(j);
+//                            String lineId = foundTrain.getLineId();
+//                            String lineName = foundTrain.getLineName();
+//                            long time = foundTrain.getTimeToStation();
+//                            ArrivalLineTime arrival = new ArrivalLineTime(lineId, lineName, time);
+//                            nextThreeArrivals.add(arrival);
+//                            Log.d(LOG_TAG, "arrival added" + lineId + lineName + time);
+//                        }
+//                    //need to create an array of objects containing station name,
+//                    //naptanID, distance, next three arrivals and their tube lines
+//
+//
+//                    Log.d(LOG_TAG, "next arrivals loaded from API");
+//                } else {
+//                    int statusCode = responseTwo.code();
+//                    Log.d(LOG_TAG, "failed with status: " + statusCode);
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<List<NextTenTrains>> call, Throwable t) {
+//                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
+//
+//            }
+//        };
+//    }
 
 
     @Override

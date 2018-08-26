@@ -6,9 +6,10 @@ import com.example.android.citymapperchallenge.nextArrivals.NextTenTrains;
 import java.util.ArrayList;
 import java.util.List;
 
+
+import io.reactivex.Observable;
 import retrofit2.Call;
 import retrofit2.http.GET;
-import retrofit2.http.Path;
 
 /**
  * Created by izzystannett on 17/04/2018.
@@ -19,9 +20,9 @@ public interface TfLUnifyService {
     String URL = "https://api.tfl.gov.uk/";
 
     @GET("StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube")
-    Call<StationsWithinRadius> getNearbyStations();
+    Observable<StationsWithinRadius> getNearbyStations();
 
-    @GET("StopPoint/{naptanId}/Arrivals")
+    @GET("StopPoint/940GZZLUSJP/Arrivals")
     //TODO: change 940... to {naptanID}
-    Call<List<NextTenTrains>> getNextArrivals(@Path("naptanId") String naptanId);
+    Call<List<NextTenTrains>> getNextArrivals();
 }
