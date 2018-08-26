@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.example.android.citymapperchallenge.R;
+import com.example.android.citymapperchallenge.model.ArrivalLineTime;
+import com.example.android.citymapperchallenge.model.NearbyStationDetails;
 import com.example.android.citymapperchallenge.nearbyStations.StopPoint;
 
 import java.util.ArrayList;
@@ -17,11 +19,11 @@ import butterknife.ButterKnife;
 
 public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndArrivalsAdapter.ViewHolder>{
 
-    private ArrayList<StopPoint> mNearbyDetails;
+    private ArrayList<NearbyStationDetails> mNearbyDetails;
     private Context mContext;
     private DetailsAdapterListener mClickHandler;
 
-    public StationAndArrivalsAdapter(Context c, ArrayList<StopPoint> nearbyDetails,
+    public StationAndArrivalsAdapter(Context c, ArrayList<NearbyStationDetails> nearbyDetails,
                                      DetailsAdapterListener clickHandler) {
         mNearbyDetails = nearbyDetails;
         mContext = c;
@@ -40,12 +42,27 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
 
     @Override
     public void onBindViewHolder(StationAndArrivalsAdapter.ViewHolder holder, int position) {
-        StopPoint stopPoint = mNearbyDetails.get(position);
-        String stationName = stopPoint.getCommonName();
-        String naptanId = stopPoint.getNaptanId();
+        NearbyStationDetails nearbyStationDetails = mNearbyDetails.get(position);
+        String stationName = nearbyStationDetails.getStation();
+        ArrayList<ArrivalLineTime> threeArrivals = nearbyStationDetails.getArrivals();
+        String firstArrival;
+        String secondArrival;
+        String thirdArrival;
+        if(threeArrivals != null) {
+            firstArrival = arrivalToString(threeArrivals.get(0));
+            secondArrival = arrivalToString(threeArrivals.get(1));
+            thirdArrival = arrivalToString(threeArrivals.get(2));
+        } else {
+            firstArrival = "";
+            secondArrival = "";
+            thirdArrival = "";
+        }
 
         holder.mStationTv.setText(stationName);
-        holder.mNaptanId.setText(naptanId);
+        holder.mFirstArrivalTv.setText(firstArrival);
+        holder.mSecondArrivalTv.setText(secondArrival);
+        holder.mThirdArrivalTv.setText(thirdArrival);
+
     }
 
     @Override
@@ -53,7 +70,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
         return mNearbyDetails.size();
     }
 
-    public void setStationsToAdapter(ArrayList<StopPoint> nearbyStations){
+    public void setStationsToAdapter(ArrayList<NearbyStationDetails> nearbyStations){
         mNearbyDetails = nearbyStations;
         notifyDataSetChanged();
     }
@@ -69,34 +86,44 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
     class ViewHolder extends RecyclerView.ViewHolder {
         @BindView(R.id.stationListTv)
         TextView mStationTv;
-        @BindView(R.id.naptanIdListTv)
-        TextView mNaptanId;
+        @BindView(R.id.firstArrivalTv)
+        TextView mFirstArrivalTv;
+        @BindView(R.id.secondArrivalTv)
+        TextView mSecondArrivalTv;
+        @BindView(R.id.thirdArrivalTv)
+        TextView mThirdArrivalTv;
 
         private ViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
 
-            mStationTv.setOnClickListener(new View.OnClickListener() {
+            mFirstArrivalTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mClickHandler.onFirstArrivalClick(v, getAdapterPosition());
                 }
             });
 
-            mNaptanId.setOnClickListener(new View.OnClickListener(){
+            mSecondArrivalTv.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
                     mClickHandler.onSecondArrivalClick(v, getAdapterPosition());
                 }
             });
 
-//            mNaptanId.setOnClickListener(new View.OnClickListener(){
-//                @Override
-//                public void onClick(View v) {
-//                    mClickHandler.onThirdArrivalClick(v, getAdapterPosition());
-//                }
-//            });
+            mThirdArrivalTv.setOnClickListener(new View.OnClickListener(){
+                @Override
+                public void onClick(View v) {
+                    mClickHandler.onThirdArrivalClick(v, getAdapterPosition());
+                }
+            });
         }
 
+    }
+
+    private String arrivalToString(ArrivalLineTime arr){
+        String lineName = arr.getLineName();
+        String arrivalTime = String.valueOf(arr.getTime());
+        return lineName + " in: " + arrivalTime;
     }
 }

@@ -15,7 +15,25 @@
         android:textSize="14sp" />
 
     <TextView
-        android:id="@+id/naptanIdListTv"
+        android:id="@+id/firstArrivalTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/naptan_id"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/secondArrivalTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/naptan_id"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/thirdArrivalTv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
