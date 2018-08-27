@@ -1,19 +1,23 @@
 package com.example.android.citymapperchallenge;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
 import com.example.android.citymapperchallenge.adapters.StationAndArrivalsAdapter;
+import com.example.android.citymapperchallenge.constants.Const;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.StationArrivals;
-import com.example.android.citymapperchallenge.nearbyStations.StationsWithinRadius;
-import com.example.android.citymapperchallenge.nearbyStations.StopPoint;
-import com.example.android.citymapperchallenge.nextArrivals.NextArrivals;
+import com.example.android.citymapperchallenge.model.StationsWithinRadius;
+import com.example.android.citymapperchallenge.model.StopPoint;
+import com.example.android.citymapperchallenge.model.NextArrivals;
 import com.example.android.citymapperchallenge.retrofit.App;
 import com.example.android.citymapperchallenge.retrofit.InternetConnectionListener;
 import com.example.android.citymapperchallenge.retrofit.TfLUnifyService;
@@ -33,24 +37,21 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         StationAndArrivalsAdapter.DetailsAdapterListener {
 
     private final String CLICKED_VIEW = "Clicked View";
+    private final String SELECTED_ARRIVAL = "Selected Arrival";
     private final String LOG_TAG = MainActivity.class.getSimpleName();
-    @BindView(R.id.nearest_stops)
-    TextView mNearestStopsTv;
-    @BindView(R.id.next_arrivals)
-    TextView mNextArrivalsTv;
     @BindView(R.id.no_internet_tv)
     TextView mNoInternetTv;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
+    @BindView(R.id.toolbar_main)
+    Toolbar toolbar;
     private RecyclerView.LayoutManager mLayoutManager;
     private ArrayList<StopPoint> listStops;
     private ArrayList<StationArrivals> mStationArrivalsList = new ArrayList<>();
     private StationAndArrivalsAdapter mAdapter;
     private TfLUnifyService apiService;
 
-
     //TODO: remove logic code off this activity
-    //TODO: set arrivalsLoopfinished to false in onResume
     //TODO: add in current location
     //TODO: remove commented out code
 
@@ -59,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setTitle(getResources().getString(R.string.tube_stations_nearby));
 
         //TODO: make sure this survives configuration changes, and dispose of subscribers if necc
 
@@ -75,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         loadDataRxJava();
     }
 
-
+    //method to load nearby stations and arrivals from TfL Unify Api
     private void loadDataRxJava() {
         listStops = new ArrayList<>();
         mStationArrivalsList.clear();
@@ -92,6 +95,9 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
                     @Override
                     public void onNext(StationsWithinRadius stationsWithinRadius) {
+                        //TODO: is this the right place to put this?
+                        mRecyclerView.setVisibility(View.VISIBLE);
+                        mNoInternetTv.setVisibility(View.GONE);
                         listStops = (ArrayList<StopPoint>)
                                 stationsWithinRadius.getStopPoints();
                         Log.v(LOG_TAG, "list of stops found: " + listStops);
@@ -125,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                                                 Log.v(LOG_TAG, "Arrivals observable subscribed"); }
                                             @Override
                                             public void onNext(List<NextArrivals> nextTenTrains) {
+                                                //TODO: these should be the next three trains, sometimes they're not in order
                                                 ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
                                                 //find first three arrivals
                                                 for (int j = 0; j < 3; j++) {
@@ -162,25 +169,37 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     @Override
     public void onInternetUnavailable() {
-        mNearestStopsTv.setVisibility(View.GONE);
+        mRecyclerView.setVisibility(View.GONE);
         mNoInternetTv.setVisibility(View.INVISIBLE);
     }
 
     @Override
-    public void onFirstArrivalClick(View v, int position) {
+    public void onFirstArrivalClick(View v, int position, int index) {
         Log.e(CLICKED_VIEW, "First view");
-
+        openLineActivity(position, index);
     }
 
     @Override
-    public void onSecondArrivalClick(View v, int position) {
+    public void onSecondArrivalClick(View v, int position, int index) {
         Log.e(CLICKED_VIEW, "Second view");
+        openLineActivity(position, index);
 
     }
 
     @Override
-    public void onThirdArrivalClick(View v, int position) {
+    public void onThirdArrivalClick(View v, int position, int index) {
         Log.e(CLICKED_VIEW, "Third view");
+        openLineActivity(position, index);
+
     }
 
+    public void openLineActivity(int position, int index){
+        StationArrivals selectedStArr = mStationArrivalsList.get(position);
+        double distanceFromStation = selectedStArr.getDistance();
+        ArrivalLineTime selectedArrival = selectedStArr.getArrivals().get(index);
+        Intent openLineActivity = new Intent(this, LineActivity.class);
+        openLineActivity.putExtra(Const.DISTANCE_TO_STATION, distanceFromStation);
+        openLineActivity.putExtra(Const.SELECTED_ARRIVAL, selectedArrival);
+        startActivity(openLineActivity);
+    }
 }

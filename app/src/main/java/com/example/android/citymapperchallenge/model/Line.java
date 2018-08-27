@@ -1,5 +1,5 @@
 
-package com.example.android.citymapperchallenge.nearbyStations;
+package com.example.android.citymapperchallenge.model;
 
 import javax.annotation.Generated;
 import com.google.gson.annotations.SerializedName;

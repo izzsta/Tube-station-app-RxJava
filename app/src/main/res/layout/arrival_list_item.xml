@@ -12,7 +12,8 @@
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
         android:text="@string/nearby_station"
-        android:textSize="14sp" />
+        android:textStyle="bold"
+        android:textSize="@dimen/medium_text" />
 
     <TextView
         android:id="@+id/firstArrivalTv"
@@ -21,7 +22,7 @@
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
         android:text="@string/naptan_id"
-        android:textSize="14sp" />
+        android:textSize="@dimen/small_text" />
 
     <TextView
         android:id="@+id/secondArrivalTv"
@@ -30,7 +31,7 @@
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
         android:text="@string/naptan_id"
-        android:textSize="14sp" />
+        android:textSize="@dimen/small_text" />
 
     <TextView
         android:id="@+id/thirdArrivalTv"
@@ -39,6 +40,11 @@
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
         android:text="@string/naptan_id"
-        android:textSize="14sp" />
+        android:textSize="@dimen/small_text" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
 
 </LinearLayout>

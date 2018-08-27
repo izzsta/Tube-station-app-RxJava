@@ -1,4 +1,4 @@
-package com.example.android.citymapperchallenge.nextArrivals;
+package com.example.android.citymapperchallenge.model;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

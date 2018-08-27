@@ -12,39 +12,20 @@
     android:layout_height="wrap_content"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/tube_stations_nearby"
-        android:textSize="14sp" />
-
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar_main"
+        android:background="@color/colorPrimary"
+        android:layout_width="match_parent"
+        android:layout_height="?actionBarSize"
+        android:fitsSystemWindows="true" />
 
     <android.support.v7.widget.RecyclerView
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
+        android:layout_margin="@dimen/medium_margin"
         android:scrollbars="vertical" />
-
-
-    <TextView
-        android:id="@+id/nearest_stops"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="148dp"
-        android:layout_marginStart="148dp"
-        android:text="@string/nearest_stops" />
-
-    <TextView
-        android:id="@+id/next_arrivals"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="@string/next_arrivals" />
 
     <TextView
         android:id="@+id/no_internet_tv"

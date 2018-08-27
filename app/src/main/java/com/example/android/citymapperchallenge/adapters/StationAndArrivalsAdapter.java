@@ -1,12 +1,15 @@
 package com.example.android.citymapperchallenge.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.android.citymapperchallenge.LineActivity;
+import com.example.android.citymapperchallenge.MainActivity;
 import com.example.android.citymapperchallenge.R;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.StationArrivals;
@@ -47,6 +50,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
         String firstArrival;
         String secondArrival;
         String thirdArrival;
+
         if(threeArrivals != null) {
             firstArrival = arrivalToString(threeArrivals.get(0));
             secondArrival = arrivalToString(threeArrivals.get(1));
@@ -69,16 +73,11 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
         return mNearbyDetails.size();
     }
 
-    public void setStationsToAdapter(ArrayList<StationArrivals> nearbyStations){
-        mNearbyDetails = nearbyStations;
-        notifyDataSetChanged();
-    }
-
     //create onClickListener interface
     public interface DetailsAdapterListener {
-        void onFirstArrivalClick(View v, int position);
-        void onSecondArrivalClick(View v, int position);
-        void onThirdArrivalClick(View v, int position);
+        void onFirstArrivalClick(View v, int position, int index);
+        void onSecondArrivalClick(View v, int position, int index);
+        void onThirdArrivalClick(View v, int position, int index);
     }
 
     //create viewholder class
@@ -99,21 +98,21 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
             mFirstArrivalTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition());
+                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(), 0);
                 }
             });
 
             mSecondArrivalTv.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onSecondArrivalClick(v, getAdapterPosition());
+                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(), 1);
                 }
             });
 
             mThirdArrivalTv.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onThirdArrivalClick(v, getAdapterPosition());
+                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(),2);
                 }
             });
         }

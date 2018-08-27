@@ -6,4 +6,5 @@
     <string name="next_arrivals">Next arrivals</string>
     <string name="nearby_station">nearby station</string>
     <string name="naptan_id">naptan Id</string>
+    <string name="line_activity_title">Line Sequence</string>
 </resources>

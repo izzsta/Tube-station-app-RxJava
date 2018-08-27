@@ -1,5 +1,5 @@
 
-package com.example.android.citymapperchallenge.nearbyStations;
+package com.example.android.citymapperchallenge.model;
 
 import java.util.List;
 import javax.annotation.Generated;
