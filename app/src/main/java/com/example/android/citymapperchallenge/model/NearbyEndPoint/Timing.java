@@ -1,4 +1,4 @@
-package com.example.android.citymapperchallenge.model;
+package com.example.android.citymapperchallenge.model.NearbyEndPoint;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

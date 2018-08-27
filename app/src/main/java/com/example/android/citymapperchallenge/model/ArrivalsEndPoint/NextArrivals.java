@@ -1,5 +1,6 @@
-package com.example.android.citymapperchallenge.model;
+package com.example.android.citymapperchallenge.model.ArrivalsEndPoint;
 
+import com.example.android.citymapperchallenge.model.NearbyEndPoint.Timing;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 

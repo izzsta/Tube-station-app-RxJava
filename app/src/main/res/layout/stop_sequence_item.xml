@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+<FrameLayout
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:layout_marginStart="@dimen/large_margin"
+    android:layout_marginEnd="@dimen/large_margin">
+
+    <View
+        android:layout_width="6dp"
+        android:layout_height="match_parent"
+        android:background="@color/colorPrimary" />
+
+    <View
+        android:layout_width="12dp"
+        android:layout_height="6dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/stop_rectangle"/>
+
+</FrameLayout>
+
+    <TextView
+        android:id="@+id/stopTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/large_margin"
+        android:layout_marginTop="@dimen/large_margin"
+        android:layout_marginStart="@dimen/large_margin"
+        android:text="@string/nearby_station"
+        android:textSize="@dimen/medium_text" />
+
+</LinearLayout>

@@ -1,15 +1,12 @@
 package com.example.android.citymapperchallenge.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.android.citymapperchallenge.LineActivity;
-import com.example.android.citymapperchallenge.MainActivity;
 import com.example.android.citymapperchallenge.R;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.StationArrivals;
@@ -19,21 +16,21 @@ import java.util.ArrayList;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndArrivalsAdapter.ViewHolder>{
+public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivalsAdapter.ViewHolder>{
 
     private ArrayList<StationArrivals> mNearbyDetails;
     private Context mContext;
     private DetailsAdapterListener mClickHandler;
 
-    public StationAndArrivalsAdapter(Context c, ArrayList<StationArrivals> nearbyDetails,
-                                     DetailsAdapterListener clickHandler) {
+    public StationArrivalsAdapter(Context c, ArrayList<StationArrivals> nearbyDetails,
+                                  DetailsAdapterListener clickHandler) {
         mNearbyDetails = nearbyDetails;
         mContext = c;
         mClickHandler = clickHandler;
     }
 
     @Override
-    public StationAndArrivalsAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public StationArrivalsAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // inflate the item Layout
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.arrival_list_item, parent,
                 false);
@@ -43,7 +40,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
     }
 
     @Override
-    public void onBindViewHolder(StationAndArrivalsAdapter.ViewHolder holder, int position) {
+    public void onBindViewHolder(StationArrivalsAdapter.ViewHolder holder, int position) {
         StationArrivals nearbyStationDetails = mNearbyDetails.get(position);
         String stationName = nearbyStationDetails.getStation();
         ArrayList<ArrivalLineTime> threeArrivals = nearbyStationDetails.getArrivals();
@@ -75,9 +72,9 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
 
     //create onClickListener interface
     public interface DetailsAdapterListener {
-        void onFirstArrivalClick(View v, int position, int index);
-        void onSecondArrivalClick(View v, int position, int index);
-        void onThirdArrivalClick(View v, int position, int index);
+        void onFirstArrivalClick(View v, int position);
+        void onSecondArrivalClick(View v, int position);
+        void onThirdArrivalClick(View v, int position);
     }
 
     //create viewholder class
@@ -98,25 +95,24 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
             mFirstArrivalTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(), 0);
+                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition());
                 }
             });
 
             mSecondArrivalTv.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(), 1);
+                    mClickHandler.onSecondArrivalClick(v, getAdapterPosition());
                 }
             });
 
             mThirdArrivalTv.setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    mClickHandler.onFirstArrivalClick(v, getAdapterPosition(),2);
+                    mClickHandler.onThirdArrivalClick(v, getAdapterPosition());
                 }
             });
         }
-
     }
 
     private String arrivalToString(ArrivalLineTime arr){

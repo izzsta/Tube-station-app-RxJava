@@ -1,7 +1,8 @@
 package com.example.android.citymapperchallenge.retrofit;
 
-import com.example.android.citymapperchallenge.model.StationsWithinRadius;
-import com.example.android.citymapperchallenge.model.NextArrivals;
+import com.example.android.citymapperchallenge.model.NearbyEndPoint.StationsWithinRadius;
+import com.example.android.citymapperchallenge.model.ArrivalsEndPoint.NextArrivals;
+import com.example.android.citymapperchallenge.model.SequenceEndPoint.LineSequence;
 
 import java.util.List;
 
@@ -25,6 +26,6 @@ public interface TfLUnifyService {
     Observable<List<NextArrivals>> getNextArrivals(@Path("naptanId") String naptanId);
 
     @GET("/Line/{lineId}/Route/Sequence/outbound")
-    Observable<List<NextArrivals>> getStopSequence(@Path("lineId") String lineId);
+    Observable<LineSequence> getLineSequence(@Path("lineId") String lineId);
 
 }

@@ -1,5 +1,5 @@
 
-package com.example.android.citymapperchallenge.model;
+package com.example.android.citymapperchallenge.model.SequenceEndPoint;
 
 import javax.annotation.Generated;
 import com.google.gson.annotations.SerializedName;

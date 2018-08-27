@@ -3,7 +3,6 @@ package com.example.android.citymapperchallenge;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -11,13 +10,13 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import com.example.android.citymapperchallenge.adapters.StationAndArrivalsAdapter;
+import com.example.android.citymapperchallenge.adapters.StationArrivalsAdapter;
 import com.example.android.citymapperchallenge.constants.Const;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.StationArrivals;
-import com.example.android.citymapperchallenge.model.StationsWithinRadius;
-import com.example.android.citymapperchallenge.model.StopPoint;
-import com.example.android.citymapperchallenge.model.NextArrivals;
+import com.example.android.citymapperchallenge.model.NearbyEndPoint.StationsWithinRadius;
+import com.example.android.citymapperchallenge.model.NearbyEndPoint.StopPoint;
+import com.example.android.citymapperchallenge.model.ArrivalsEndPoint.NextArrivals;
 import com.example.android.citymapperchallenge.retrofit.App;
 import com.example.android.citymapperchallenge.retrofit.InternetConnectionListener;
 import com.example.android.citymapperchallenge.retrofit.TfLUnifyService;
@@ -34,7 +33,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity implements InternetConnectionListener,
-        StationAndArrivalsAdapter.DetailsAdapterListener {
+        StationArrivalsAdapter.DetailsAdapterListener {
 
     private final String CLICKED_VIEW = "Clicked View";
     private final String SELECTED_ARRIVAL = "Selected Arrival";
@@ -48,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     private RecyclerView.LayoutManager mLayoutManager;
     private ArrayList<StopPoint> listStops;
     private ArrayList<StationArrivals> mStationArrivalsList = new ArrayList<>();
-    private StationAndArrivalsAdapter mAdapter;
+    private StationArrivalsAdapter mAdapter;
     private TfLUnifyService apiService;
 
     //TODO: remove logic code off this activity
@@ -69,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setHasFixedSize(true);
-        mAdapter = new StationAndArrivalsAdapter(this, mStationArrivalsList, this);
+        mAdapter = new StationArrivalsAdapter(this, mStationArrivalsList, this);
         mRecyclerView.setAdapter(mAdapter);
 
         apiService = ((App) getApplication()).getService();
@@ -174,22 +173,22 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     }
 
     @Override
-    public void onFirstArrivalClick(View v, int position, int index) {
-        Log.e(CLICKED_VIEW, "First view");
-        openLineActivity(position, index);
+    public void onFirstArrivalClick(View v, int position) {
+        Log.v(CLICKED_VIEW, "First view");
+        openLineActivity(position, 0);
     }
 
     @Override
-    public void onSecondArrivalClick(View v, int position, int index) {
-        Log.e(CLICKED_VIEW, "Second view");
-        openLineActivity(position, index);
+    public void onSecondArrivalClick(View v, int position) {
+        Log.v(CLICKED_VIEW, "Second view");
+        openLineActivity(position, 1);
 
     }
 
     @Override
-    public void onThirdArrivalClick(View v, int position, int index) {
-        Log.e(CLICKED_VIEW, "Third view");
-        openLineActivity(position, index);
+    public void onThirdArrivalClick(View v, int position) {
+        Log.v(CLICKED_VIEW, "Third view");
+        openLineActivity(position, 2);
 
     }
 

@@ -1,13 +1,14 @@
 
-package com.example.android.citymapperchallenge.model;
+package com.example.android.citymapperchallenge.model.NearbyEndPoint;
 
 import java.util.List;
 import javax.annotation.Generated;
+
 import com.google.gson.annotations.SerializedName;
 
 @Generated("net.hexar.json2pojo")
 @SuppressWarnings("unused")
-public class Child {
+public class StopPoint {
 
     @SerializedName("$type")
     private String m$type;
@@ -17,6 +18,8 @@ public class Child {
     private List<Child> mChildren;
     @SerializedName("commonName")
     private String mCommonName;
+    @SerializedName("distance")
+    private Double mDistance;
     @SerializedName("icsCode")
     private String mIcsCode;
     @SerializedName("id")
@@ -32,7 +35,7 @@ public class Child {
     @SerializedName("lon")
     private Double mLon;
     @SerializedName("modes")
-    private List<Object> mModes;
+    private List<String> mModes;
     @SerializedName("naptanId")
     private String mNaptanId;
     @SerializedName("placeType")
@@ -41,6 +44,8 @@ public class Child {
     private String mStationNaptan;
     @SerializedName("status")
     private Boolean mStatus;
+    @SerializedName("stopType")
+    private String mStopType;
 
     public String get$type() {
         return m$type;
@@ -72,6 +77,14 @@ public class Child {
 
     public void setCommonName(String commonName) {
         mCommonName = commonName;
+    }
+
+    public Double getDistance() {
+        return mDistance;
+    }
+
+    public void setDistance(Double distance) {
+        mDistance = distance;
     }
 
     public String getIcsCode() {
@@ -130,11 +143,11 @@ public class Child {
         mLon = lon;
     }
 
-    public List<Object> getModes() {
+    public List<String> getModes() {
         return mModes;
     }
 
-    public void setModes(List<Object> modes) {
+    public void setModes(List<String> modes) {
         mModes = modes;
     }
 
@@ -168,6 +181,14 @@ public class Child {
 
     public void setStatus(Boolean status) {
         mStatus = status;
+    }
+
+    public String getStopType() {
+        return mStopType;
+    }
+
+    public void setStopType(String stopType) {
+        mStopType = stopType;
     }
 
 }
