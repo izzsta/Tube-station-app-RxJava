@@ -66,8 +66,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.setHasFixedSize(true);
-        mAdapter = new StationAndArrivalsAdapter(this, mStationArrivalsList,
-                this);
+        mAdapter = new StationAndArrivalsAdapter(this, mStationArrivalsList, this);
         mRecyclerView.setAdapter(mAdapter);
 
         apiService = ((App) getApplication()).getService();
@@ -79,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
     private void loadDataRxJava() {
         listStops = new ArrayList<>();
+        mStationArrivalsList.clear();
         //create first observable to return list of nearby stopPoints
         Observable<StationsWithinRadius> observable = apiService.getNearbyStations();
         observable
@@ -87,14 +87,14 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 .subscribe(new Observer<StationsWithinRadius>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        Log.e(LOG_TAG, "Subscribed to nearby stations observable");
+                        Log.v(LOG_TAG, "Subscribed to nearby stations observable");
                     }
 
                     @Override
                     public void onNext(StationsWithinRadius stationsWithinRadius) {
                         listStops = (ArrayList<StopPoint>)
                                 stationsWithinRadius.getStopPoints();
-                        Log.e(LOG_TAG, "list of stops found: " + listStops);
+                        Log.v(LOG_TAG, "list of stops found: " + listStops);
                         }
 
                     @Override
@@ -105,14 +105,15 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
                     @Override
                     public void onComplete() {
-
+                        //iterate through the stop points
                         for (int i = 0; i < listStops.size(); i++) {
                                 StopPoint stopPoint = listStops.get(i);
-                                //add details from first response to object
+                                //create objects from information available from stop points
                                 final StationArrivals foundDetails = new StationArrivals(stopPoint.getCommonName(),
                                         stopPoint.getNaptanId(), stopPoint.getDistance(), null);
-                            mStationArrivalsList.add(foundDetails);
-                                //create new observable
+                                mStationArrivalsList.add(foundDetails);
+
+                                //query the arrivals endpoint, for each naptanId, to get arrivals
                                 Observable<List<NextArrivals>> arrivalsObservable =
                                         apiService.getNextArrivals(stopPoint.getNaptanId());
                                 arrivalsObservable
@@ -121,26 +122,23 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                                         .subscribe(new Observer<List<NextArrivals>>() {
                                             @Override
                                             public void onSubscribe(Disposable d) {
-                                                Log.v(LOG_TAG, "Arrivals observable subscribed");
-                                            }
-
+                                                Log.v(LOG_TAG, "Arrivals observable subscribed"); }
                                             @Override
                                             public void onNext(List<NextArrivals> nextTenTrains) {
-                                                //for the first three arrivals, create ArrivalLineTime objects
                                                 ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
-
+                                                //find first three arrivals
                                                 for (int j = 0; j < 3; j++) {
                                                     NextArrivals foundTrain = nextTenTrains.get(j);
-                                                    String lineId = foundTrain.getLineId();
-                                                    String lineName = foundTrain.getLineName();
-                                                    long time = foundTrain.getTimeToStation();
-                                                    ArrivalLineTime arrival = new ArrivalLineTime(lineId, lineName, time);
+                                                    ArrivalLineTime arrival = new ArrivalLineTime
+                                                            (foundTrain.getLineId(), foundTrain.getLineName(),
+                                                                    foundTrain.getTimeToStation());
                                                     nextThreeArrivals.add(arrival);
+                                                    //complete the StationArrivals objects
                                                     foundDetails.setArrivals(nextThreeArrivals);
-                                                    mStationArrivalsList.add(foundDetails);
-                                                    mAdapter.notifyDataSetChanged();
-                                                    Log.d(LOG_TAG, "arrival added" + lineId + lineName + time);
+                                                    Log.d(LOG_TAG, "arrival added" + arrival);
                                                 }
+                                                //notify adapter of changes to data
+                                                mAdapter.notifyDataSetChanged();
                                             }
 
                                             @Override
@@ -152,198 +150,15 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
                                             @Override
                                             public void onComplete() {
-                                                Log.e(LOG_TAG, "Arrivals observable completed");
+                                                Log.v(LOG_TAG, "Arrivals observable completed");
 
                                             }
                                         });
-                                //add station details and arrival details to a StationArrivals object
-
                         }
-                        Log.e(LOG_TAG, "Nearby stations observer complete");
-                        //mAdapter.setStationsToAdapter(mStationArrivalsList);
-
+                        Log.v(LOG_TAG, "Nearby stations observer complete");
                     }
                 });
     }
-
-//        //for each stop point, find the next three arrivals and
-//        // create objects to later pass to the adapter
-//        int numberOfNearbyStations = listStops.size();
-//
-//        for (int i = 0; i < numberOfNearbyStations; i++) {
-//
-//            nextThreeArrivals.clear();
-//            StopPoint stopPoint = listStops.get(i);
-//
-//            //for each stop point, create an object with station details and next three arrivals
-//            StationArrivals foundDetails = new StationArrivals();
-//            foundDetails.setStation(stopPoint.getCommonName());
-//            String naptanId = stopPoint.getNaptanId();
-//            foundDetails.setNaptanId(naptanId);
-//            foundDetails.setDistance(stopPoint.getDistance());
-//
-//            //create new observable
-//            Observable<List<NextArrivals>> arrivalsObservable = ((App) getApplication())
-//                    .getService().getNextArrivals(naptanId);
-//            arrivalsObservable
-//                    .subscribeOn(Schedulers.io())
-//                    .observeOn(AndroidSchedulers.mainThread())
-//                    .subscribe(new Observer<List<NextArrivals>>() {
-//                        @Override
-//                        public void onSubscribe(Disposable d) {
-//                            Log.e(LOG_TAG, "Arrivals observable subscribed");
-//                        }
-//
-//                        @Override
-//                        public void onNext(List<NextArrivals> nextTenTrains) {
-//                            nextThreeArrivals = new ArrayList<>();
-//                            //for the first three arrivals, create ArrivalLineTime objects
-//                            for (int j = 0; j < 3; j++) {
-//                                NextArrivals foundTrain = nextTenTrains.get(j);
-//                                String lineId = foundTrain.getLineId();
-//                                String lineName = foundTrain.getLineName();
-//                                long time = foundTrain.getTimeToStation();
-//                                ArrivalLineTime arrival = new ArrivalLineTime(lineId, lineName, time);
-//                                nextThreeArrivals.add(arrival);
-//                                Log.d(LOG_TAG, "arrival added" + lineId + lineName + time);
-//                            }
-//                        }
-//
-//                        @Override
-//                        public void onError(Throwable e) {
-//                            e.printStackTrace();
-//                            Log.e(LOG_TAG, "Arrivals observable error");
-//
-//                        }
-//
-//                        @Override
-//                        public void onComplete() {
-//                            Log.e(LOG_TAG, "Arrivals observable completed");
-//
-//                        }
-//                    });
-//            //add station details and arrival details to a StationArrivals object
-//            foundDetails.setArrivals(nextThreeArrivals);
-//            mNearbyDetails.add(foundDetails);
-//        }
-//        mAdapter.setStationsToAdapter(mNearbyDetails);
-//    }
-
-//    //load stations and arrivals using Retrofit on background thread
-//    private void loadNearbyStationsAndArrivals(){
-//        ((App) getApplication()).getService().getNearbyStations()
-//                .enqueue(getStationsWithinRadius());
-//    }
-//
-//    private Callback<StationsWithinRadius> getStationsWithinRadius() {
-//        return new Callback<StationsWithinRadius>(){
-//
-//            @Override
-//            public void onResponse(Call<StationsWithinRadius> call, Response<StationsWithinRadius> response) {
-//                if (response.isSuccessful()) {
-//                    mNearestStopsTv.setVisibility(View.VISIBLE);
-//                    mNoInternetTv.setVisibility(View.GONE);
-//
-//                    StationsWithinRadius stationsFound = response.body();
-//                    listStopPoints = (ArrayList<StopPoint>) stationsFound.getStopPoints();
-//
-//                    //end target is an array of NearbyStationDetail objects
-//                    mNearbyDetails = new ArrayList<>();
-//
-//                    //for each stop point, get station name, distance and naptanID
-//                    int numberOfNearbyStations = listStopPoints.size();
-//
-//                    for (int i=0; i<numberOfNearbyStations; i++) {
-//
-//                        nextThreeArrivals.clear();
-//                        StationArrivals foundDetails = new StationArrivals();
-//                        StopPoint stopPoint = listStopPoints.get(i);
-//                        foundDetails.setStation(stopPoint.getCommonName());
-//                        String naptanId = stopPoint.getNaptanId();
-//                        foundDetails.setNaptanId(naptanId);
-//                        foundDetails.setDistance(stopPoint.getDistance());
-//
-//                        //use naptanID to query the arrivals end point
-//                        ((App) getApplication()).getService().getNextArrivals(naptanId)
-//                                .enqueue(getNextTenTrains());
-//
-//                        foundDetails.setArrivals(nextThreeArrivals);
-//                        mNearbyDetails.add(foundDetails);
-//                    }
-//
-//                    //mAdapter.setRecipesToAdapter(mNearbyDetails);
-//
-//                    Log.d(LOG_TAG, "nearest stops loaded from API");
-//                } else {
-//                    int statusCode = response.code();
-//                    Log.d(LOG_TAG, "failed with status: " + statusCode);
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<StationsWithinRadius> call, Throwable t) {
-//                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
-//
-//            }
-//        };
-//    }
-//
-//
-//
-//    private Callback<List<NextArrivals>> getNextTenTrains(){
-//        return new Callback<List<NextArrivals>>() {
-//            @Override
-//            public void onResponse(Call<List<NextArrivals>> call, Response<List<NextArrivals>> responseTwo) {
-//                if (responseTwo.isSuccessful()) {
-//                    mNextArrivalsTv.setVisibility(View.VISIBLE);
-//                    mNoInternetTv.setVisibility(View.GONE);
-//
-//                    List<NextArrivals> nextTenTrainsList = responseTwo.body();
-//
-////                    nextArrivalsJson = responseTwo.body().toString();
-////                    mNextArrivalsTv.setText(nextArrivalsJson);
-//
-////                    mNearbyDetails = new ArrayList<>();
-////                    int numberOfNearbyStations = listStopPoints.size();
-////
-////                    for (int i=0; i<numberOfNearbyStations; i++){
-////
-////                        //StationArrivals foundDetails = new StationArrivals();
-////                        StopPoint stopPoint = listStopPoints.get(i);
-////                        foundDetails.setStation(stopPoint.getCommonName());
-////                        foundDetails.setNaptanId(stopPoint.getNaptanId());
-////                        foundDetails.setDistance(stopPoint.getDistance());
-//
-//                        //create method to feed in naptan ID and get list of arrivals for each station
-////                        nextThreeArrivals = new ArrayList<>();
-//                        for (int j=0; j<3; j++){
-//                            NextArrivals foundTrain = nextTenTrainsList.get(j);
-//                            String lineId = foundTrain.getLineId();
-//                            String lineName = foundTrain.getLineName();
-//                            long time = foundTrain.getTimeToStation();
-//                            ArrivalLineTime arrival = new ArrivalLineTime(lineId, lineName, time);
-//                            nextThreeArrivals.add(arrival);
-//                            Log.d(LOG_TAG, "arrival added" + lineId + lineName + time);
-//                        }
-//                    //need to create an array of objects containing station name,
-//                    //naptanID, distance, next three arrivals and their tube lines
-//
-//
-//                    Log.d(LOG_TAG, "next arrivals loaded from API");
-//                } else {
-//                    int statusCode = responseTwo.code();
-//                    Log.d(LOG_TAG, "failed with status: " + statusCode);
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<List<NextArrivals>> call, Throwable t) {
-//                Log.d(LOG_TAG, "error loading from API " + t.getMessage());
-//
-//            }
-//        };
-//    }
-
 
     @Override
     public void onInternetUnavailable() {
