@@ -9,8 +9,7 @@ import android.widget.TextView;
 
 import com.example.android.citymapperchallenge.R;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
-import com.example.android.citymapperchallenge.model.NearbyStationDetails;
-import com.example.android.citymapperchallenge.nearbyStations.StopPoint;
+import com.example.android.citymapperchallenge.model.StationArrivals;
 
 import java.util.ArrayList;
 
@@ -19,11 +18,11 @@ import butterknife.ButterKnife;
 
 public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndArrivalsAdapter.ViewHolder>{
 
-    private ArrayList<NearbyStationDetails> mNearbyDetails;
+    private ArrayList<StationArrivals> mNearbyDetails;
     private Context mContext;
     private DetailsAdapterListener mClickHandler;
 
-    public StationAndArrivalsAdapter(Context c, ArrayList<NearbyStationDetails> nearbyDetails,
+    public StationAndArrivalsAdapter(Context c, ArrayList<StationArrivals> nearbyDetails,
                                      DetailsAdapterListener clickHandler) {
         mNearbyDetails = nearbyDetails;
         mContext = c;
@@ -42,7 +41,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
 
     @Override
     public void onBindViewHolder(StationAndArrivalsAdapter.ViewHolder holder, int position) {
-        NearbyStationDetails nearbyStationDetails = mNearbyDetails.get(position);
+        StationArrivals nearbyStationDetails = mNearbyDetails.get(position);
         String stationName = nearbyStationDetails.getStation();
         ArrayList<ArrivalLineTime> threeArrivals = nearbyStationDetails.getArrivals();
         String firstArrival;
@@ -70,7 +69,7 @@ public class StationAndArrivalsAdapter extends RecyclerView.Adapter<StationAndAr
         return mNearbyDetails.size();
     }
 
-    public void setStationsToAdapter(ArrayList<NearbyStationDetails> nearbyStations){
+    public void setStationsToAdapter(ArrayList<StationArrivals> nearbyStations){
         mNearbyDetails = nearbyStations;
         notifyDataSetChanged();
     }

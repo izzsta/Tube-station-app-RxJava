@@ -3,7 +3,7 @@ package com.example.android.citymapperchallenge.nextArrivals;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class NextTenTrains {
+public class NextArrivals {
 
     @SerializedName("$type")
     @Expose

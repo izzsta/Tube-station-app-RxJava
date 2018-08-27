@@ -1,14 +1,12 @@
 package com.example.android.citymapperchallenge.retrofit;
 
 import com.example.android.citymapperchallenge.nearbyStations.StationsWithinRadius;
-import com.example.android.citymapperchallenge.nextArrivals.NextTenTrains;
+import com.example.android.citymapperchallenge.nextArrivals.NextArrivals;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
 import io.reactivex.Observable;
-import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
 
@@ -25,5 +23,5 @@ public interface TfLUnifyService {
 
     @GET("StopPoint/{naptanId}/Arrivals")
     //TODO: change 940... to {naptanID}
-    Observable<List<NextTenTrains>> getNextArrivals(@Path("naptanId") String naptanId);
+    Observable<List<NextArrivals>> getNextArrivals(@Path("naptanId") String naptanId);
 }
