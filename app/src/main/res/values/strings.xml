@@ -4,4 +4,7 @@
     <string name="no_internet_connection">No internet connection</string>
     <string name="nearby_station">nearby station</string>
     <string name="line_activity_title">Line Sequence</string>
+    <string name="metro_station" translatable="false">NaptanMetroStation</string>
+    <string name="radius" translatable="false">1000</string>
+    <string name="tube_mode" translatable="false">tube</string>
 </resources>

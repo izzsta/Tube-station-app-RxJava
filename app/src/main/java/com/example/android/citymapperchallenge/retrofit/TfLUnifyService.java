@@ -21,12 +21,10 @@ public interface TfLUnifyService {
 
     String URL = "https://api.tfl.gov.uk/";
 
-    //"StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube"
-
     @GET("StopPoint")
     Observable<StationsWithinRadius> getNearbyStations(@QueryMap Map<String, String> options);
 
-    @GET("StopPoint/{naptanId}/Arrivals")
+    @GET("StopPoint/{naptanId}/Arrivals/")
     Observable<List<NextArrivals>> getNextArrivals(@Path("naptanId") String naptanId);
 
     @GET("/Line/{lineId}/Route/Sequence/outbound")

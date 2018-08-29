@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivalsAdapter.ViewHolder>{
+public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivalsAdapter.ViewHolder> {
 
     private ArrayList<StationArrivals> mNearbyDetails;
     private Context mContext;
@@ -45,20 +45,21 @@ public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivals
         StationArrivals nearbyStationDetails = mNearbyDetails.get(position);
         String stationName = nearbyStationDetails.getStation();
         ArrayList<ArrivalLineTime> threeArrivals = nearbyStationDetails.getArrivals();
-        String firstArrival;
-        String secondArrival;
-        String thirdArrival;
+        String firstArrival = "";
+        String secondArrival = "";
+        String thirdArrival = "";
 
-        if(threeArrivals != null) {
-            firstArrival = arrivalToString(threeArrivals.get(0));
-            secondArrival = arrivalToString(threeArrivals.get(1));
-            thirdArrival = arrivalToString(threeArrivals.get(2));
-        } else {
-            firstArrival = "";
-            secondArrival = "";
-            thirdArrival = "";
+        if (threeArrivals != null) {
+            if (threeArrivals.size() >= 1) {
+                firstArrival = arrivalToString(threeArrivals.get(0));
+            }
+            if (threeArrivals.size() >= 2) {
+                secondArrival = arrivalToString(threeArrivals.get(1));
+            }
+            if (threeArrivals.size() >= 3) {
+                thirdArrival = arrivalToString(threeArrivals.get(2));
+            }
         }
-
         holder.mStationTv.setText(stationName);
         holder.mFirstArrivalTv.setText(firstArrival);
         holder.mSecondArrivalTv.setText(secondArrival);
@@ -74,7 +75,9 @@ public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivals
     //create onClickListener interface
     public interface DetailsAdapterListener {
         void onFirstArrivalClick(View v, int position);
+
         void onSecondArrivalClick(View v, int position);
+
         void onThirdArrivalClick(View v, int position);
     }
 
@@ -100,14 +103,14 @@ public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivals
                 }
             });
 
-            mSecondArrivalTv.setOnClickListener(new View.OnClickListener(){
+            mSecondArrivalTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mClickHandler.onSecondArrivalClick(v, getAdapterPosition());
                 }
             });
 
-            mThirdArrivalTv.setOnClickListener(new View.OnClickListener(){
+            mThirdArrivalTv.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mClickHandler.onThirdArrivalClick(v, getAdapterPosition());
@@ -116,7 +119,7 @@ public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivals
         }
     }
 
-    private String arrivalToString(ArrivalLineTime arr){
+    private String arrivalToString(ArrivalLineTime arr) {
         String lineName = arr.getLineName();
         long arrivalTime = arr.getTime();
         long arrInMins = TimeUnit.SECONDS.toMinutes(arrivalTime);

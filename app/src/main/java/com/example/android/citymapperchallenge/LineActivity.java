@@ -37,6 +37,14 @@ import io.reactivex.schedulers.Schedulers;
 public class LineActivity extends AppCompatActivity {
 
     private final String LOG_TAG = LineActivity.class.getSimpleName();
+    @BindView(R.id.toolbar_line)
+    Toolbar toolbar;
+    @BindView(R.id.stops_recycler_view)
+    RecyclerView mRecyclerView;
+    @BindView(R.id.no_internet_line_tv)
+    TextView mNoInternetTv;
+    @BindView(R.id.progress_bar_line)
+    ProgressBar progressBarLine;
     private ArrivalLineTime mSelectedArrival;
     private double mDistance;
     private String mLineId;
@@ -48,15 +56,6 @@ public class LineActivity extends AppCompatActivity {
     private ArrayList<StopPoint> mStopPointList = new ArrayList<>();
     private int currentStationPosition;
     private String mNaptanId;
-
-    @BindView(R.id.toolbar_line)
-    Toolbar toolbar;
-    @BindView(R.id.stops_recycler_view)
-    RecyclerView mRecyclerView;
-    @BindView(R.id.no_internet_line_tv)
-    TextView mNoInternetTv;
-    @BindView(R.id.progress_bar_line)
-    ProgressBar progressBarLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +79,7 @@ public class LineActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mAdapter);
 
         //TODO: if savedInstanceState = null, as with Baking App?
-        if(savedInstanceState == null) {
+        if (savedInstanceState == null) {
             Intent receivedIntent = getIntent();
             mSelectedArrival = receivedIntent.getParcelableExtra(Const.SELECTED_ARRIVAL);
             mDistance = receivedIntent.getDoubleExtra(Const.DISTANCE_TO_STATION, 0); //unfinished
@@ -97,7 +96,7 @@ public class LineActivity extends AppCompatActivity {
             getSupportActionBar().setTitle(mLineName);
         }
 
-        if(isInternetAvailable()){
+        if (isInternetAvailable()) {
             mRecyclerView.setVisibility(View.VISIBLE);
             mNoInternetTv.setVisibility(View.GONE);
             apiService = mRetrofitHelper.getService();

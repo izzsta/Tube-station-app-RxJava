@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -63,13 +64,14 @@ public class MainActivity extends AppCompatActivity implements
     @BindView(R.id.progress_bar_main)
     ProgressBar progressBar;
     private RecyclerView.LayoutManager mLayoutManager;
-    private ArrayList<StopPoint> listStops;
+    private ArrayList<StopPoint> listStops = new ArrayList<>();
     private ArrayList<StationArrivals> mStationArrivalsList = new ArrayList<>();
     private StationArrivalsAdapter mAdapter;
-    private RetrofitHelper mRetrofitHelper;
     private TfLUnifyService apiService;
     private LocationManager locationManager;
     private String provider;
+    private Double mLat = 51.5025;
+    private Double mLon = -0.1348;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +79,10 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle(getResources().getString(R.string.tube_stations_nearby));
+        ActionBar ab = getSupportActionBar();
+        if(ab!=null) {
+            ab.setTitle(getResources().getString(R.string.tube_stations_nearby));
+        }
 
         //set up recyclerView
         mLayoutManager = new LinearLayoutManager(this);
@@ -86,62 +91,37 @@ public class MainActivity extends AppCompatActivity implements
         mAdapter = new StationArrivalsAdapter(this, mStationArrivalsList, this);
         mRecyclerView.setAdapter(mAdapter);
 
-
         //get current location
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        provider = locationManager.getBestProvider(new Criteria(), false);
 
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             //permissions not granted, so request permissions
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_FINE_COARSE_LOCATION);
         } else {
-            //permissions granted, get location
+            //permissions granted
+            provider = locationManager.getBestProvider(new Criteria(), false);
             getLocation(locationManager, provider);
+            //if connected, proceed with API queries
+            if (isInternetAvailable()) {
+                mRecyclerView.setVisibility(View.VISIBLE);
+                mNoInternetTv.setVisibility(View.GONE);
+                apiService = new RetrofitHelper().getService();
+                loadDataRxJava(createQueryMap(mLat, mLon));
+            } else {
+                mRecyclerView.setVisibility(View.GONE);
+                mNoInternetTv.setVisibility(View.VISIBLE);
+            }
         }
-
-        // "StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube"
-        Map<String, String> data = new HashMap<>();
-        data.put("lat", "51.5206");
-        data.put("lon", "-0.1026");
-        data.put("stopTypes", "NaptanMetroStation");
-        data.put("radius", "1000");
-        data.put("modes", "tube");
-
-        mRetrofitHelper = new RetrofitHelper();
-        //if conencted, proceed with API queries
-        if (isInternetAvailable()) {
-            mRecyclerView.setVisibility(View.VISIBLE);
-            mNoInternetTv.setVisibility(View.GONE);
-            apiService = mRetrofitHelper.getService();
-            loadDataRxJava(data);
-        } else {
-            mRecyclerView.setVisibility(View.GONE);
-            mNoInternetTv.setVisibility(View.VISIBLE);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        getLocation(locationManager, provider);
-        //TODO: reinstate below
-        //loadDataRxJava(data);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        locationManager.removeUpdates(this);
     }
 
     //method to load nearby stations and arrivals from TfL Unify Api
     private void loadDataRxJava(Map<String, String> queryMap) {
-        listStops = new ArrayList<>();
+        listStops.clear();
         mStationArrivalsList.clear();
         //create first observable to return list of nearby stopPoints
         Observable<StationsWithinRadius> observable = apiService.getNearbyStations(queryMap);
@@ -195,20 +175,21 @@ public class MainActivity extends AppCompatActivity implements
                                         @Override
                                         public void onNext(List<NextArrivals> nextTenTrains) {
                                             //if at least one arrival is found, proceed
-                                            if (nextTenTrains.size() > 0) {
-                                                Collections.sort(nextTenTrains, new CustomComparator());
-                                                ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
-                                                //find first three arrivals
-                                                for (int j = 0; j < 3; j++) {
-                                                    NextArrivals foundTrain = nextTenTrains.get(j);
-                                                    ArrivalLineTime arrival = new ArrivalLineTime
-                                                            (foundTrain.getLineId(), foundTrain.getLineName(),
-                                                                    foundTrain.getTimeToStation());
-                                                    nextThreeArrivals.add(arrival);
-                                                    //complete the StationArrivals objects
-                                                    foundDetails.setArrivals(nextThreeArrivals);
-                                                    Log.d(LOG_TAG, "arrival added" + arrival);
-                                                }
+
+                                            Collections.sort(nextTenTrains, new CustomComparator());
+                                            ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
+                                            int arrivalsNumber = Math.min(nextTenTrains.size(), 3);
+
+                                            //find first three arrivals
+                                            for (int j = 0; j < arrivalsNumber; j++) {
+                                                NextArrivals foundTrain = nextTenTrains.get(j);
+                                                ArrivalLineTime arrival = new ArrivalLineTime
+                                                        (foundTrain.getLineId(), foundTrain.getLineName(),
+                                                                foundTrain.getTimeToStation());
+                                                nextThreeArrivals.add(arrival);
+                                                //complete the StationArrivals objects
+                                                foundDetails.setArrivals(nextThreeArrivals);
+                                                Log.d(LOG_TAG, "arrival added" + arrival);
                                             }
                                             //notify adapter of changes to data
                                             mAdapter.notifyDataSetChanged();
@@ -258,14 +239,35 @@ public class MainActivity extends AppCompatActivity implements
         startActivity(openLineActivity);
     }
 
-    // get current location methods
+    //get current location methods
+    private void getLocation(LocationManager lm, String provider) {
+        try {
+            Location location = lm.getLastKnownLocation(provider);
+            if (location != null) {
+                onLocationChanged(location);
+            } else {
+                Log.v(LOG_TAG, "Latitude Location not available");
+                Log.v(LOG_TAG, "Longitude Location not available");
+            }
+        } catch (SecurityException e) {
+            Log.e(LOG_TAG, "Location permissions error: " + e);
+        }
+    }
+
+    //method to get current location, or return to default
     @Override
     public void onLocationChanged(Location location) {
-        double lat = location.getLatitude();
-        double lng = location.getLongitude();
-        Log.v(LOG_TAG, "Latitude found:" + String.valueOf(lat));
-        Log.v(LOG_TAG, "Longitude found:" + String.valueOf(lng));
-        //TODO: check location is within London
+        Double foundLat = location.getLatitude();
+        Double foundLon = location.getLongitude();
+        Log.v(LOG_TAG, "Latitude found:" + String.valueOf(foundLat));
+        Log.v(LOG_TAG, "Longitude found:" + String.valueOf(foundLon));
+        //if current location is within London, set mLat and mLon
+        if (foundLat < Const.NORTHERNMOST_LAT && foundLat > Const.SOUTHERNMOST_LAT) {
+            mLat = foundLat;
+        }
+        if (foundLon > Const.WESTERNMOST_LAT && foundLon < Const.EASTERNMOST_LAT) {
+            mLon = foundLon;
+        }
     }
 
     @Override
@@ -293,31 +295,34 @@ public class MainActivity extends AppCompatActivity implements
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // permission was granted
+                    provider = locationManager.getBestProvider(new Criteria(), false);
                     getLocation(locationManager, provider);
+                    if (isInternetAvailable()) {
+                        mRecyclerView.setVisibility(View.VISIBLE);
+                        mNoInternetTv.setVisibility(View.GONE);
+                        apiService = new RetrofitHelper().getService();
+                        loadDataRxJava(createQueryMap(mLat, mLon));
+                    } else {
+                        mRecyclerView.setVisibility(View.GONE);
+                        mNoInternetTv.setVisibility(View.VISIBLE);
+                    }
                 } else {
                     // permission denied
                     Toast.makeText(this, "Default location used",
                             Toast.LENGTH_SHORT).show();
                 }
-                return;
             }
         }
     }
 
-    //method to get current location, or return to default
-    public void getLocation(LocationManager lm, String provider) {
-        try {
-            Location location = lm.getLastKnownLocation(provider);
-            if (location != null) {
-                System.out.println("Provider " + provider + " has been selected.");
-                onLocationChanged(location);
-            } else {
-                Log.v(LOG_TAG, "Latitude Location not available");
-                Log.v(LOG_TAG, "Longitude Location not available");
-            }
-        } catch (SecurityException e) {
-            Log.e(LOG_TAG, "Location permissions error: " + e);
-        }
+    private Map<String, String> createQueryMap(Double lat, Double lon) {
+        Map<String, String> data = new HashMap<>();
+        data.put("lat", lat.toString());
+        data.put("lon", lon.toString());
+        data.put("stopTypes", getString(R.string.metro_station));
+        data.put("radius", getString(R.string.radius));
+        data.put("modes", getString(R.string.tube_mode));
+        return data;
     }
 
     //check internet connectivity
