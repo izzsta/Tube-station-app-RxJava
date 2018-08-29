@@ -1,6 +1,9 @@
 package com.example.android.citymapperchallenge.model;
 
-public class ArrivalLineTime {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ArrivalLineTime implements Parcelable{
 
     private String mLineId;
     private String mLineName;
@@ -34,5 +37,36 @@ public class ArrivalLineTime {
 
     public void setTime(long time){
         mTime = time;
+    }
+
+    //parcellable methods
+    public static final Creator CREATOR = new Creator() {
+        @Override
+        public ArrivalLineTime createFromParcel(Parcel parcel) {
+            return new ArrivalLineTime(parcel);
+        }
+
+        @Override
+        public ArrivalLineTime[] newArray(int i) {
+            return new ArrivalLineTime[i];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel parcel, int i) {
+        parcel.writeString(mLineId);
+        parcel.writeString(mLineName);
+        parcel.writeLong(mTime);
+    }
+
+    private ArrivalLineTime(Parcel in) {
+        mLineId = in.readString();
+        mLineName = in.readString();
+        mTime = in.readLong();
     }
 }

@@ -1,14 +1,17 @@
 package com.example.android.citymapperchallenge.retrofit;
 
-import com.example.android.citymapperchallenge.nearbyStations.StationsWithinRadius;
-import com.example.android.citymapperchallenge.nextArrivals.NextTenTrains;
+import com.example.android.citymapperchallenge.model.NearbyEndPoint.StationsWithinRadius;
+import com.example.android.citymapperchallenge.model.ArrivalsEndPoint.NextArrivals;
+import com.example.android.citymapperchallenge.model.SequenceEndPoint.LineSequence;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-import retrofit2.Call;
+
+import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
+import retrofit2.http.QueryMap;
 
 /**
  * Created by izzystannett on 17/04/2018.
@@ -18,10 +21,13 @@ public interface TfLUnifyService {
 
     String URL = "https://api.tfl.gov.uk/";
 
-    @GET("StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube")
-    Call<StationsWithinRadius> getNearbyStations();
+    @GET("StopPoint")
+    Observable<StationsWithinRadius> getNearbyStations(@QueryMap Map<String, String> options);
 
-    @GET("StopPoint/{naptanId}/Arrivals")
-    //TODO: change 940... to {naptanID}
-    Call<List<NextTenTrains>> getNextArrivals(@Path("naptanId") String naptanId);
+    @GET("StopPoint/{naptanId}/Arrivals/")
+    Observable<List<NextArrivals>> getNextArrivals(@Path("naptanId") String naptanId);
+
+    @GET("/Line/{lineId}/Route/Sequence/outbound")
+    Observable<LineSequence> getLineSequence(@Path("lineId") String lineId);
+
 }

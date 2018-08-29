@@ -3,24 +3,45 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/small_margin"
     android:orientation="vertical">
 
     <TextView
         android:id="@+id/stationListTv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:layout_marginTop="@dimen/medium_margin"
         android:text="@string/nearby_station"
-        android:textSize="14sp" />
+        android:textSize="@dimen/large_text" />
 
     <TextView
-        android:id="@+id/naptanIdListTv"
+        android:id="@+id/firstArrivalTv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:layout_marginTop="8dp"
-        android:text="@string/naptan_id"
-        android:textSize="14sp" />
+        android:textSize="@dimen/medium_text"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:layout_marginTop="@dimen/small_margin"/>
+
+    <TextView
+        android:id="@+id/secondArrivalTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:layout_marginTop="@dimen/small_margin"
+        android:textSize="@dimen/medium_text" />
+
+    <TextView
+        android:id="@+id/thirdArrivalTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/medium_margin"
+        android:layout_marginTop="@dimen/small_margin"
+        android:textSize="@dimen/medium_text" />
+
+    <View
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
 
 </LinearLayout>

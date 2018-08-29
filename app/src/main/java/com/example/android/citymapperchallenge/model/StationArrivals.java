@@ -2,17 +2,17 @@ package com.example.android.citymapperchallenge.model;
 
 import java.util.ArrayList;
 
-public class NearbyStationDetails {
+public class StationArrivals {
 
     private String mStation;
     private String mNaptanId;
     private double mDistance;
     private ArrayList<ArrivalLineTime> mArrivals;
 
-    public NearbyStationDetails(){};
+    public StationArrivals(){}
 
-    public NearbyStationDetails(String station, String naptanId, double distance,
-                                ArrayList<ArrivalLineTime> arrivals){
+    public StationArrivals(String station, String naptanId, double distance,
+                           ArrayList<ArrivalLineTime> arrivals){
         mStation = station;
         mNaptanId = naptanId;
         mDistance = distance;
