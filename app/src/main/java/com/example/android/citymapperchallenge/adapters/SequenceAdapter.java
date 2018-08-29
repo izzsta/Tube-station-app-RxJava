@@ -3,6 +3,7 @@ package com.example.android.citymapperchallenge.adapters;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,10 +21,12 @@ public class SequenceAdapter extends RecyclerView.Adapter<SequenceAdapter.ViewHo
 
     private ArrayList<StopPoint> mStopPoints;
     private Context mContext;
+    private int mCurrentStationPosition;
 
-    public SequenceAdapter(Context context, ArrayList<StopPoint> stopPoints) {
+    public SequenceAdapter(Context context, ArrayList<StopPoint> stopPoints, int stationPosition) {
         mStopPoints = stopPoints;
         mContext = context;
+        mCurrentStationPosition = stationPosition;
     }
 
     @NonNull
@@ -40,12 +43,23 @@ public class SequenceAdapter extends RecyclerView.Adapter<SequenceAdapter.ViewHo
     public void onBindViewHolder(@NonNull SequenceAdapter.ViewHolder holder, int position) {
         StopPoint stopPoint = mStopPoints.get(position);
         String stopPointName = stopPoint.getName();
-        holder.mStopTv.setText(stopPointName);
+        if(position == mCurrentStationPosition){
+            holder.mStopTv.setText(stopPointName);
+            holder.mStopTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+            holder.mStopTv.setTextColor(mContext.getResources().getColor(R.color.primary_text));
+        } else {
+            holder.mStopTv.setText(stopPointName);
+        }
     }
 
     @Override
     public int getItemCount() {
         return mStopPoints.size();
+    }
+
+    public void updateSequenceAdapter(int stationPosition){
+        mCurrentStationPosition = stationPosition;
+        notifyDataSetChanged();
     }
 
     //create viewholder class

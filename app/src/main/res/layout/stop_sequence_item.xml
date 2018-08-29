@@ -34,4 +34,14 @@
         android:text="@string/nearby_station"
         android:textSize="@dimen/medium_text" />
 
+    <TextView
+        android:id="@+id/distanceTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:layout_marginTop="@dimen/small_margin"
+        android:layout_marginStart="@dimen/large_margin"
+        android:visibility="gone"
+        android:textSize="@dimen/small_text" />
+
 </LinearLayout>

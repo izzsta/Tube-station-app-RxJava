@@ -3,8 +3,6 @@ package com.example.android.citymapperchallenge.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.util.ArrayList;
-
 public class ArrivalLineTime implements Parcelable{
 
     private String mLineId;

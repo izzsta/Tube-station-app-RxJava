@@ -12,6 +12,7 @@ import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.StationArrivals;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -117,7 +118,8 @@ public class StationArrivalsAdapter extends RecyclerView.Adapter<StationArrivals
 
     private String arrivalToString(ArrivalLineTime arr){
         String lineName = arr.getLineName();
-        String arrivalTime = String.valueOf(arr.getTime());
-        return lineName + " in: " + arrivalTime;
+        long arrivalTime = arr.getTime();
+        long arrInMins = TimeUnit.SECONDS.toMinutes(arrivalTime);
+        return lineName + " line: " + arrInMins + " mins";
     }
 }

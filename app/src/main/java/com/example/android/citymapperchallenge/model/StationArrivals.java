@@ -9,7 +9,7 @@ public class StationArrivals {
     private double mDistance;
     private ArrayList<ArrivalLineTime> mArrivals;
 
-    public StationArrivals(){};
+    public StationArrivals(){}
 
     public StationArrivals(String station, String naptanId, double distance,
                            ArrayList<ArrivalLineTime> arrivals){
