@@ -1,6 +1,9 @@
 package com.example.android.citymapperchallenge;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -8,13 +11,16 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.example.android.citymapperchallenge.adapters.SequenceAdapter;
 import com.example.android.citymapperchallenge.constants.Const;
 import com.example.android.citymapperchallenge.model.ArrivalLineTime;
 import com.example.android.citymapperchallenge.model.SequenceEndPoint.LineSequence;
 import com.example.android.citymapperchallenge.model.SequenceEndPoint.StopPoint;
-import com.example.android.citymapperchallenge.retrofit.App;
+import com.example.android.citymapperchallenge.retrofit.RetrofitHelper;
 import com.example.android.citymapperchallenge.retrofit.TfLUnifyService;
 
 import java.util.ArrayList;
@@ -31,19 +37,26 @@ import io.reactivex.schedulers.Schedulers;
 public class LineActivity extends AppCompatActivity {
 
     private final String LOG_TAG = LineActivity.class.getSimpleName();
-    @BindView(R.id.toolbar_line)
-    Toolbar toolbar;
-    @BindView(R.id.stops_recycler_view)
-    RecyclerView mRecyclerView;
     private ArrivalLineTime mSelectedArrival;
     private double mDistance;
     private String mLineId;
+    private String mLineName;
+    private RetrofitHelper mRetrofitHelper;
     private TfLUnifyService apiService;
     private LinearLayoutManager mLayoutManager;
     private SequenceAdapter mAdapter;
     private ArrayList<StopPoint> mStopPointList = new ArrayList<>();
     private int currentStationPosition;
     private String mNaptanId;
+
+    @BindView(R.id.toolbar_line)
+    Toolbar toolbar;
+    @BindView(R.id.stops_recycler_view)
+    RecyclerView mRecyclerView;
+    @BindView(R.id.no_internet_line_tv)
+    TextView mNoInternetTv;
+    @BindView(R.id.progress_bar_line)
+    ProgressBar progressBarLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +70,7 @@ public class LineActivity extends AppCompatActivity {
             ab.setDisplayHomeAsUpEnabled(true);
         }
 
-        apiService = ((App) getApplication()).getService();
+        mRetrofitHelper = new RetrofitHelper();
 
         //set up recycler view
         mLayoutManager = new LinearLayoutManager(this);
@@ -67,18 +80,40 @@ public class LineActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mAdapter);
 
         //TODO: if savedInstanceState = null, as with Baking App?
-
-        Intent receivedIntent = getIntent();
-        mSelectedArrival = receivedIntent.getParcelableExtra(Const.SELECTED_ARRIVAL);
-        mDistance = receivedIntent.getDoubleExtra(Const.DISTANCE_TO_STATION, 0); //unfinished
-        mLineId = mSelectedArrival.getLineId();
-        mNaptanId = receivedIntent.getStringExtra(Const.NAPTAN_ID);
-
-        if (ab != null) {
-            getSupportActionBar().setTitle(mSelectedArrival.getLineName());
+        if(savedInstanceState == null) {
+            Intent receivedIntent = getIntent();
+            mSelectedArrival = receivedIntent.getParcelableExtra(Const.SELECTED_ARRIVAL);
+            mDistance = receivedIntent.getDoubleExtra(Const.DISTANCE_TO_STATION, 0); //unfinished
+            mLineId = mSelectedArrival.getLineId();
+            mLineName = mSelectedArrival.getLineName();
+            mNaptanId = receivedIntent.getStringExtra(Const.NAPTAN_ID);
+        } else {
+            mLineId = savedInstanceState.getString(Const.SAVED_LINE_ID);
+            mNaptanId = savedInstanceState.getString(Const.SAVED_NAPTAN_ID);
+            mLineName = savedInstanceState.getString(Const.SAVED_LINE_NAME);
         }
 
-        loadStopSequence();
+        if (ab != null) {
+            getSupportActionBar().setTitle(mLineName);
+        }
+
+        if(isInternetAvailable()){
+            mRecyclerView.setVisibility(View.VISIBLE);
+            mNoInternetTv.setVisibility(View.GONE);
+            apiService = mRetrofitHelper.getService();
+            loadStopSequence();
+        } else {
+            mRecyclerView.setVisibility(View.GONE);
+            mNoInternetTv.setVisibility(View.VISIBLE);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(Const.SAVED_LINE_ID, mLineId);
+        outState.putString(Const.SAVED_NAPTAN_ID, mNaptanId);
+        outState.putString(Const.SAVED_LINE_NAME, mLineName);
+        super.onSaveInstanceState(outState);
     }
 
     private void loadStopSequence() {
@@ -89,6 +124,7 @@ public class LineActivity extends AppCompatActivity {
                 .subscribe(new Observer<LineSequence>() {
                     @Override
                     public void onSubscribe(Disposable d) {
+                        progressBarLine.setVisibility(View.VISIBLE);
                         Log.v(LOG_TAG, "Subscribed to line sequence observable");
                     }
 
@@ -119,8 +155,17 @@ public class LineActivity extends AppCompatActivity {
 
                     @Override
                     public void onComplete() {
+                        progressBarLine.setVisibility(View.GONE);
                         Log.v(LOG_TAG, "Line sequence observable completed");
                     }
                 });
+    }
+
+    //check internet connectivity
+    private boolean isInternetAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 }

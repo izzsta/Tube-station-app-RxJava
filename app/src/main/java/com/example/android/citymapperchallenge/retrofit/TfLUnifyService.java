@@ -5,11 +5,13 @@ import com.example.android.citymapperchallenge.model.ArrivalsEndPoint.NextArriva
 import com.example.android.citymapperchallenge.model.SequenceEndPoint.LineSequence;
 
 import java.util.List;
+import java.util.Map;
 
 
 import io.reactivex.Observable;
 import retrofit2.http.GET;
 import retrofit2.http.Path;
+import retrofit2.http.QueryMap;
 
 /**
  * Created by izzystannett on 17/04/2018.
@@ -19,8 +21,10 @@ public interface TfLUnifyService {
 
     String URL = "https://api.tfl.gov.uk/";
 
-    @GET("StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube")
-    Observable<StationsWithinRadius> getNearbyStations();
+    //"StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube"
+
+    @GET("StopPoint")
+    Observable<StationsWithinRadius> getNearbyStations(@QueryMap Map<String, String> options);
 
     @GET("StopPoint/{naptanId}/Arrivals")
     Observable<List<NextArrivals>> getNextArrivals(@Path("naptanId") String naptanId);

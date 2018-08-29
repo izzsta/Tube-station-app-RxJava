@@ -8,7 +8,8 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -19,6 +20,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,14 +31,15 @@ import com.example.android.citymapperchallenge.model.ArrivalsEndPoint.NextArriva
 import com.example.android.citymapperchallenge.model.NearbyEndPoint.StationsWithinRadius;
 import com.example.android.citymapperchallenge.model.NearbyEndPoint.StopPoint;
 import com.example.android.citymapperchallenge.model.StationArrivals;
-import com.example.android.citymapperchallenge.retrofit.App;
-import com.example.android.citymapperchallenge.retrofit.InternetConnectionListener;
+import com.example.android.citymapperchallenge.retrofit.RetrofitHelper;
 import com.example.android.citymapperchallenge.retrofit.TfLUnifyService;
 import com.example.android.citymapperchallenge.utils.CustomComparator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -46,7 +49,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
-public class MainActivity extends AppCompatActivity implements InternetConnectionListener,
+public class MainActivity extends AppCompatActivity implements
         StationArrivalsAdapter.DetailsAdapterListener, LocationListener {
 
     private final String LOG_TAG = MainActivity.class.getSimpleName();
@@ -57,16 +60,16 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     RecyclerView mRecyclerView;
     @BindView(R.id.toolbar_main)
     Toolbar toolbar;
+    @BindView(R.id.progress_bar_main)
+    ProgressBar progressBar;
     private RecyclerView.LayoutManager mLayoutManager;
     private ArrayList<StopPoint> listStops;
     private ArrayList<StationArrivals> mStationArrivalsList = new ArrayList<>();
     private StationArrivalsAdapter mAdapter;
+    private RetrofitHelper mRetrofitHelper;
     private TfLUnifyService apiService;
     private LocationManager locationManager;
     private String provider;
-
-    //TODO: remove logic code off this activity
-    //TODO: remove commented out code
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,8 +86,6 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         mAdapter = new StationArrivalsAdapter(this, mStationArrivalsList, this);
         mRecyclerView.setAdapter(mAdapter);
 
-        apiService = ((App) getApplication()).getService();
-        ((App) getApplication()).setInternetConnectionListener(this);
 
         //get current location
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -103,14 +104,33 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
             getLocation(locationManager, provider);
         }
 
-        loadDataRxJava();
+        // "StopPoint?lat=51.5025&lon=-0.1348&stopTypes=NaptanMetroStation&radius=1000&modes=tube"
+        Map<String, String> data = new HashMap<>();
+        data.put("lat", "51.5206");
+        data.put("lon", "-0.1026");
+        data.put("stopTypes", "NaptanMetroStation");
+        data.put("radius", "1000");
+        data.put("modes", "tube");
+
+        mRetrofitHelper = new RetrofitHelper();
+        //if conencted, proceed with API queries
+        if (isInternetAvailable()) {
+            mRecyclerView.setVisibility(View.VISIBLE);
+            mNoInternetTv.setVisibility(View.GONE);
+            apiService = mRetrofitHelper.getService();
+            loadDataRxJava(data);
+        } else {
+            mRecyclerView.setVisibility(View.GONE);
+            mNoInternetTv.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         getLocation(locationManager, provider);
-        loadDataRxJava();
+        //TODO: reinstate below
+        //loadDataRxJava(data);
     }
 
     @Override
@@ -120,26 +140,24 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     }
 
     //method to load nearby stations and arrivals from TfL Unify Api
-    private void loadDataRxJava() {
+    private void loadDataRxJava(Map<String, String> queryMap) {
         listStops = new ArrayList<>();
         mStationArrivalsList.clear();
-        //TODO: change to Disposable Observable?
         //create first observable to return list of nearby stopPoints
-        Observable<StationsWithinRadius> observable = apiService.getNearbyStations();
+        Observable<StationsWithinRadius> observable = apiService.getNearbyStations(queryMap);
         observable
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<StationsWithinRadius>() {
                     @Override
                     public void onSubscribe(Disposable d) {
+                        progressBar.setVisibility(View.VISIBLE);
                         Log.v(LOG_TAG, "Subscribed to nearby stations observable");
                     }
 
                     @Override
                     public void onNext(StationsWithinRadius stationsWithinRadius) {
-                        //TODO: is this the right place to put this?
-                        mRecyclerView.setVisibility(View.VISIBLE);
-                        mNoInternetTv.setVisibility(View.GONE);
+                        //get list of nearby stop points from endpoint
                         listStops = (ArrayList<StopPoint>)
                                 stationsWithinRadius.getStopPoints();
                         Log.v(LOG_TAG, "list of stops found: " + listStops);
@@ -156,12 +174,13 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                         //iterate through the stop points
                         for (int i = 0; i < listStops.size(); i++) {
                             StopPoint stopPoint = listStops.get(i);
-                            //create objects from information available from stop points
+
+                            //create objects from information already available
                             final StationArrivals foundDetails = new StationArrivals(stopPoint.getCommonName(),
                                     stopPoint.getNaptanId(), stopPoint.getDistance(), null);
                             mStationArrivalsList.add(foundDetails);
 
-                            //query the arrivals endpoint, for each naptanId, to get arrivals
+                            //for each naptanID, query the arrivals endpoint to get list of arrivals
                             Observable<List<NextArrivals>> arrivalsObservable =
                                     apiService.getNextArrivals(stopPoint.getNaptanId());
                             arrivalsObservable
@@ -175,18 +194,21 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
 
                                         @Override
                                         public void onNext(List<NextArrivals> nextTenTrains) {
-                                            Collections.sort(nextTenTrains, new CustomComparator());
-                                            ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
-                                            //find first three arrivals
-                                            for (int j = 0; j < 3; j++) {
-                                                NextArrivals foundTrain = nextTenTrains.get(j);
-                                                ArrivalLineTime arrival = new ArrivalLineTime
-                                                        (foundTrain.getLineId(), foundTrain.getLineName(),
-                                                                foundTrain.getTimeToStation());
-                                                nextThreeArrivals.add(arrival);
-                                                //complete the StationArrivals objects
-                                                foundDetails.setArrivals(nextThreeArrivals);
-                                                Log.d(LOG_TAG, "arrival added" + arrival);
+                                            //if at least one arrival is found, proceed
+                                            if (nextTenTrains.size() > 0) {
+                                                Collections.sort(nextTenTrains, new CustomComparator());
+                                                ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
+                                                //find first three arrivals
+                                                for (int j = 0; j < 3; j++) {
+                                                    NextArrivals foundTrain = nextTenTrains.get(j);
+                                                    ArrivalLineTime arrival = new ArrivalLineTime
+                                                            (foundTrain.getLineId(), foundTrain.getLineName(),
+                                                                    foundTrain.getTimeToStation());
+                                                    nextThreeArrivals.add(arrival);
+                                                    //complete the StationArrivals objects
+                                                    foundDetails.setArrivals(nextThreeArrivals);
+                                                    Log.d(LOG_TAG, "arrival added" + arrival);
+                                                }
                                             }
                                             //notify adapter of changes to data
                                             mAdapter.notifyDataSetChanged();
@@ -196,13 +218,12 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                                         public void onError(Throwable e) {
                                             e.printStackTrace();
                                             Log.e(LOG_TAG, "Arrivals observable error");
-
                                         }
 
                                         @Override
                                         public void onComplete() {
+                                            progressBar.setVisibility(View.GONE);
                                             Log.v(LOG_TAG, "Arrivals observable completed");
-
                                         }
                                     });
                         }
@@ -211,12 +232,7 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 });
     }
 
-    @Override
-    public void onInternetUnavailable() {
-        mRecyclerView.setVisibility(View.GONE);
-        mNoInternetTv.setVisibility(View.INVISIBLE);
-    }
-
+    //onClick methods for adapter
     @Override
     public void onFirstArrivalClick(View v, int position) {
         openLineActivity(position, 0);
@@ -225,24 +241,20 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
     @Override
     public void onSecondArrivalClick(View v, int position) {
         openLineActivity(position, 1);
-
     }
 
     @Override
     public void onThirdArrivalClick(View v, int position) {
         openLineActivity(position, 2);
-
     }
 
+    //pass selected arrival info to and open LineActivity
     public void openLineActivity(int position, int index) {
         StationArrivals selectedStArr = mStationArrivalsList.get(position);
-        double distanceFromStation = selectedStArr.getDistance();
-        String naptanId = selectedStArr.getNaptanId();
-        ArrivalLineTime selectedArrival = selectedStArr.getArrivals().get(index);
         Intent openLineActivity = new Intent(this, LineActivity.class);
-        openLineActivity.putExtra(Const.DISTANCE_TO_STATION, distanceFromStation);
-        openLineActivity.putExtra(Const.SELECTED_ARRIVAL, selectedArrival);
-        openLineActivity.putExtra(Const.NAPTAN_ID, naptanId);
+        openLineActivity.putExtra(Const.DISTANCE_TO_STATION, selectedStArr.getDistance());
+        openLineActivity.putExtra(Const.SELECTED_ARRIVAL, selectedStArr.getArrivals().get(index));
+        openLineActivity.putExtra(Const.NAPTAN_ID, selectedStArr.getNaptanId());
         startActivity(openLineActivity);
     }
 
@@ -253,13 +265,11 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         double lng = location.getLongitude();
         Log.v(LOG_TAG, "Latitude found:" + String.valueOf(lat));
         Log.v(LOG_TAG, "Longitude found:" + String.valueOf(lng));
-
         //TODO: check location is within London
     }
 
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {
-
     }
 
     @Override
@@ -274,17 +284,16 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 Toast.LENGTH_SHORT).show();
     }
 
+    //request location permission
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        //super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case PERMISSION_REQUEST_FINE_COARSE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // permission was granted
-                   getLocation(locationManager, provider);
+                    getLocation(locationManager, provider);
                 } else {
                     // permission denied
                     Toast.makeText(this, "Default location used",
@@ -295,7 +304,8 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
         }
     }
 
-    public void getLocation(LocationManager lm, String provider){
+    //method to get current location, or return to default
+    public void getLocation(LocationManager lm, String provider) {
         try {
             Location location = lm.getLastKnownLocation(provider);
             if (location != null) {
@@ -305,8 +315,16 @@ public class MainActivity extends AppCompatActivity implements InternetConnectio
                 Log.v(LOG_TAG, "Latitude Location not available");
                 Log.v(LOG_TAG, "Longitude Location not available");
             }
-        } catch (SecurityException e){
+        } catch (SecurityException e) {
             Log.e(LOG_TAG, "Location permissions error: " + e);
         }
+    }
+
+    //check internet connectivity
+    private boolean isInternetAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 }

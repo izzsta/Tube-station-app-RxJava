@@ -24,6 +24,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <ProgressBar
+                android:id="@+id/progress_bar_main"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:minHeight="50dp"
+                android:minWidth="50dp"
+                android:visibility="gone"/>
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/recycler_view"
@@ -34,8 +42,10 @@
 
             <TextView
                 android:id="@+id/no_internet_tv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textSize="@dimen/medium_text"
+                android:gravity="center"
                 android:text="@string/no_internet_connection"
                 android:visibility="gone" />
 
