@@ -47,7 +47,9 @@ import butterknife.ButterKnife;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity implements
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements
     private String provider;
     private Double mLat = 51.5025;
     private Double mLon = -0.1348;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,10 +127,16 @@ public class MainActivity extends AppCompatActivity implements
         listStops.clear();
         mStationArrivalsList.clear();
         //create first observable to return list of nearby stopPoints
-        Observable<StationsWithinRadius> observable = apiService.getNearbyStations(queryMap);
-        observable
+        Observable<StationsWithinRadius> stationsObservable = apiService.getNearbyStations(queryMap);
+        //create stationsObserver
+        DisposableObserver<StationsWithinRadius> getStationsObserver = getStationsObserver();
+        DisposableObserver<List<NextArrivals>> getArrivalsObserver = getArrivalsObserver();
+
+        compositeDisposable.add(
+                stationsObservable
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
+                //TODO: should be .subscribe(getStationsWithinRadius) need an operator
                 .subscribe(new Observer<StationsWithinRadius>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -163,54 +172,80 @@ public class MainActivity extends AppCompatActivity implements
                             //for each naptanID, query the arrivals endpoint to get list of arrivals
                             Observable<List<NextArrivals>> arrivalsObservable =
                                     apiService.getNextArrivals(stopPoint.getNaptanId());
+
                             arrivalsObservable
                                     .subscribeOn(Schedulers.io())
                                     .observeOn(AndroidSchedulers.mainThread())
-                                    .subscribe(new Observer<List<NextArrivals>>() {
-                                        @Override
-                                        public void onSubscribe(Disposable d) {
-                                            Log.v(LOG_TAG, "Arrivals observable subscribed");
-                                        }
-
-                                        @Override
-                                        public void onNext(List<NextArrivals> nextTenTrains) {
-                                            //if at least one arrival is found, proceed
-
-                                            Collections.sort(nextTenTrains, new CustomComparator());
-                                            ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
-                                            int arrivalsNumber = Math.min(nextTenTrains.size(), 3);
-
-                                            //find first three arrivals
-                                            for (int j = 0; j < arrivalsNumber; j++) {
-                                                NextArrivals foundTrain = nextTenTrains.get(j);
-                                                ArrivalLineTime arrival = new ArrivalLineTime
-                                                        (foundTrain.getLineId(), foundTrain.getLineName(),
-                                                                foundTrain.getTimeToStation());
-                                                nextThreeArrivals.add(arrival);
-                                                //complete the StationArrivals objects
-                                                foundDetails.setArrivals(nextThreeArrivals);
-                                                Log.d(LOG_TAG, "arrival added" + arrival);
-                                            }
-                                            //notify adapter of changes to data
-                                            mAdapter.notifyDataSetChanged();
-                                        }
-
-                                        @Override
-                                        public void onError(Throwable e) {
-                                            e.printStackTrace();
-                                            Log.e(LOG_TAG, "Arrivals observable error");
-                                        }
-
-                                        @Override
-                                        public void onComplete() {
-                                            progressBar.setVisibility(View.GONE);
-                                            Log.v(LOG_TAG, "Arrivals observable completed");
-                                        }
-                                    });
+                                    .subscribe(getArrivalsObserver());
                         }
                         Log.v(LOG_TAG, "Nearby stations observer complete");
                     }
                 });
+    }
+
+    //function that returns stations within radius Observer
+    private DisposableObserver<StationsWithinRadius> getStationsObserver(){
+        return new DisposableObserver<StationsWithinRadius>(){
+
+            @Override
+            public void onNext(StationsWithinRadius stationsWithinRadius) {
+                listStops = (ArrayList<StopPoint>)
+                        stationsWithinRadius.getStopPoints();
+                Log.v(LOG_TAG, "list of stops found: " + listStops);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "Nearby stations observer error");
+            }
+
+            @Override
+            public void onComplete() {
+                //TODO: iterate through stop points
+            }
+        };
+    }
+
+    //method that returns list of arrivals observer
+    private DisposableObserver<List<NextArrivals>> getArrivalsObserver(){
+        return new DisposableObserver<List<NextArrivals>>(){
+
+            @Override
+            public void onNext(List<NextArrivals> nextTenTrains) {
+                //if at least one arrival is found, proceed
+
+                Collections.sort(nextTenTrains, new CustomComparator());
+                ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
+                int arrivalsNumber = Math.min(nextTenTrains.size(), 3);
+
+                //find first three arrivals
+                for (int j = 0; j < arrivalsNumber; j++) {
+                    NextArrivals foundTrain = nextTenTrains.get(j);
+                    ArrivalLineTime arrival = new ArrivalLineTime
+                            (foundTrain.getLineId(), foundTrain.getLineName(),
+                                    foundTrain.getTimeToStation());
+                    nextThreeArrivals.add(arrival);
+                    //complete the StationArrivals objects
+                    foundDetails.setArrivals(nextThreeArrivals);
+                    Log.d(LOG_TAG, "arrival added" + arrival);
+                }
+                //notify adapter of changes to data
+                mAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "Arrivals observable error");
+            }
+
+            @Override
+            public void onComplete() {
+                progressBar.setVisibility(View.GONE);
+                Log.v(LOG_TAG, "Arrivals observable completed");
+            }
+        };
     }
 
     //onClick methods for adapter
@@ -252,6 +287,12 @@ public class MainActivity extends AppCompatActivity implements
         } catch (SecurityException e) {
             Log.e(LOG_TAG, "Location permissions error: " + e);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
     }
 
     //method to get current location, or return to default
