@@ -7,7 +7,7 @@ public class StationArrivals {
     private String mStation;
     private String mNaptanId;
     private double mDistance;
-    private ArrayList<ArrivalLineTime> mArrivals;
+    private static ArrayList<ArrivalLineTime> mArrivals;
 
     public StationArrivals(){}
 
@@ -45,7 +45,7 @@ public class StationArrivals {
 
     public void setDistance(double distance){ mDistance = distance;}
 
-    public void setArrivals(ArrayList<ArrivalLineTime> arrivals){
+    public static void setArrivals(ArrayList<ArrivalLineTime> arrivals){
         mArrivals = arrivals;
     }
 }

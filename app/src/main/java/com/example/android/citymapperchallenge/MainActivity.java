@@ -45,10 +45,13 @@ import java.util.Map;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observables.ConnectableObservable;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
@@ -114,7 +117,8 @@ public class MainActivity extends AppCompatActivity implements
                 mRecyclerView.setVisibility(View.VISIBLE);
                 mNoInternetTv.setVisibility(View.GONE);
                 apiService = new RetrofitHelper().getService();
-                loadDataRxJava(createQueryMap(mLat, mLon));
+                //loadDataRxJava(createQueryMap(mLat, mLon));
+                loadDataRxJava();
             } else {
                 mRecyclerView.setVisibility(View.GONE);
                 mNoInternetTv.setVisibility(View.VISIBLE);
@@ -123,130 +127,185 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     //method to load nearby stations and arrivals from TfL Unify Api
-    private void loadDataRxJava(Map<String, String> queryMap) {
-        listStops.clear();
+    //    private void loadDataRxJava(Map<String, String> queryMap) {
+    private void loadDataRxJava() {
+        // listStops.clear();
         mStationArrivalsList.clear();
         //create first observable to return list of nearby stopPoints
-        Observable<StationsWithinRadius> stationsObservable = apiService.getNearbyStations(queryMap);
+        Observable<StationsWithinRadius> stationsObservable = apiService.getNearbyStations();
         //create stationsObserver
-        DisposableObserver<StationsWithinRadius> getStationsObserver = getStationsObserver();
-        DisposableObserver<List<NextArrivals>> getArrivalsObserver = getArrivalsObserver();
+        // DisposableObserver<StationsWithinRadius> getStationsObserver = getStationsObserver();
+        // DisposableObserver<List<NextArrivals>> getArrivalsObserver = getArrivalsObserver();
 
+        //initially, get list of nearby stations and update recyclerView
         compositeDisposable.add(
                 stationsObservable
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableObserver<StationsWithinRadius>() {
+                            @Override
+                            public void onNext(StationsWithinRadius stationsWithinRadius) {
+                                //get list of stops
+                                listStops.clear();
+                                listStops = (ArrayList<StopPoint>) stationsWithinRadius.getStopPoints();
+                                //update recycler view
+                                for (int i = 0; i < listStops.size(); i++) {
+                                    StopPoint stopPoint = listStops.get(i);
+
+                                    //create objects from information already available
+                                    final StationArrivals foundDetails = new StationArrivals(stopPoint.getCommonName(),
+                                            stopPoint.getNaptanId(), stopPoint.getDistance(), null);
+                                    mStationArrivalsList.add(foundDetails);
+                                }
+                                mAdapter.notifyDataSetChanged();
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+
+                            }
+
+                            @Override
+                            public void onComplete() {
+
+                            }
+                        })
+        );
+
+        //create observable from list of stops
+        Observable<StationArrivals> stationArrivalsObservable = Observable.fromIterable(mStationArrivalsList);
+        //create another observable using flatmap, turning list of stops into single stop emissions
+        //use single stop emissions to query second HTTP call and get arrivals
+//
+        stationArrivalsObservable
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                //TODO: should be .subscribe(getStationsWithinRadius) need an operator
-                .subscribe(new Observer<StationsWithinRadius>() {
+                .flatMap(new Function<StationArrivals, Observable<List<NextArrivals>>>() {
                     @Override
-                    public void onSubscribe(Disposable d) {
-                        progressBar.setVisibility(View.VISIBLE);
-                        Log.v(LOG_TAG, "Subscribed to nearby stations observable");
+                    public Observable<List<NextArrivals>> apply(StationArrivals stationArrivals) throws Exception {
+                        return apiService.getNextArrivals(stationArrivals.getNaptanId());
                     }
+                })
+                .subscribe(new DisposableObserver<List<NextArrivals>>() {
 
                     @Override
-                    public void onNext(StationsWithinRadius stationsWithinRadius) {
-                        //get list of nearby stop points from endpoint
-                        listStops = (ArrayList<StopPoint>)
-                                stationsWithinRadius.getStopPoints();
-                        Log.v(LOG_TAG, "list of stops found: " + listStops);
+                    public void onNext(List<NextArrivals> nextTenTrains) {
+                        //if at least one arrival is found, proceed
+
+                        Collections.sort(nextTenTrains, new CustomComparator());
+                        ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
+                        int arrivalsNumber = Math.min(nextTenTrains.size(), 3);
+
+                        //find first three arrivals
+                        for (int j = 0; j < arrivalsNumber; j++) {
+                            NextArrivals foundTrain = nextTenTrains.get(j);
+                            ArrivalLineTime arrival = new ArrivalLineTime
+                                    (foundTrain.getLineId(), foundTrain.getLineName(),
+                                            foundTrain.getTimeToStation());
+                            nextThreeArrivals.add(arrival);
+                            //complete the StationArrivals objects
+                            Log.d(LOG_TAG, "arrival added" + arrival);
+                        }
+                        StationArrivals.setArrivals(nextThreeArrivals);
+                        //notify adapter of changes to data
+                        mAdapter.notifyDataSetChanged();
                     }
 
                     @Override
                     public void onError(Throwable e) {
                         e.printStackTrace();
-                        Log.e(LOG_TAG, "Nearby stations observer error");
+                        Log.e(LOG_TAG, "Arrivals observable error");
                     }
 
                     @Override
                     public void onComplete() {
-                        //iterate through the stop points
-                        for (int i = 0; i < listStops.size(); i++) {
-                            StopPoint stopPoint = listStops.get(i);
-
-                            //create objects from information already available
-                            final StationArrivals foundDetails = new StationArrivals(stopPoint.getCommonName(),
-                                    stopPoint.getNaptanId(), stopPoint.getDistance(), null);
-                            mStationArrivalsList.add(foundDetails);
-
-                            //for each naptanID, query the arrivals endpoint to get list of arrivals
-                            Observable<List<NextArrivals>> arrivalsObservable =
-                                    apiService.getNextArrivals(stopPoint.getNaptanId());
-
-                            arrivalsObservable
-                                    .subscribeOn(Schedulers.io())
-                                    .observeOn(AndroidSchedulers.mainThread())
-                                    .subscribe(getArrivalsObserver());
-                        }
-                        Log.v(LOG_TAG, "Nearby stations observer complete");
+                        progressBar.setVisibility(View.GONE);
+                        Log.v(LOG_TAG, "Arrivals observable completed");
                     }
                 });
     }
 
+
+//
+//        compositeDisposable.add(
+//                stationsObservable
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                //TODO: should be .subscribe(getStationsWithinRadius) need an operator
+//                .subscribe(new Observer<StationsWithinRadius>() {
+//                    @Override
+//                    public void onSubscribe(Disposable d) {
+//                        progressBar.setVisibility(View.VISIBLE);
+//                        Log.v(LOG_TAG, "Subscribed to nearby stations observable");
+//                    }
+//
+//                    @Override
+//                    public void onNext(StationsWithinRadius stationsWithinRadius) {
+//                        //get list of nearby stop points from endpoint
+//                        listStops = (ArrayList<StopPoint>)
+//                                stationsWithinRadius.getStopPoints();
+//                        Log.v(LOG_TAG, "list of stops found: " + listStops);
+//                    }
+//
+//                    @Override
+//                    public void onError(Throwable e) {
+//                        e.printStackTrace();
+//                        Log.e(LOG_TAG, "Nearby stations observer error");
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//                        //iterate through the stop points
+//                        for (int i = 0; i < listStops.size(); i++) {
+//                            StopPoint stopPoint = listStops.get(i);
+//
+//                            //create objects from information already available
+//                            final StationArrivals foundDetails = new StationArrivals(stopPoint.getCommonName(),
+//                                    stopPoint.getNaptanId(), stopPoint.getDistance(), null);
+//                            mStationArrivalsList.add(foundDetails);
+//
+//                            //for each naptanID, query the arrivals endpoint to get list of arrivals
+//                            Observable<List<NextArrivals>> arrivalsObservable =
+//                                    apiService.getNextArrivals(stopPoint.getNaptanId());
+//
+//                            arrivalsObservable
+//                                    .subscribeOn(Schedulers.io())
+//                                    .observeOn(AndroidSchedulers.mainThread())
+//                                    .subscribe(getArrivalsObserver());
+//                        }
+//                        Log.v(LOG_TAG, "Nearby stations observer complete");
+//                    }
+//                });
+//    }
+
     //function that returns stations within radius Observer
-    private DisposableObserver<StationsWithinRadius> getStationsObserver(){
-        return new DisposableObserver<StationsWithinRadius>(){
-
-            @Override
-            public void onNext(StationsWithinRadius stationsWithinRadius) {
-                listStops = (ArrayList<StopPoint>)
-                        stationsWithinRadius.getStopPoints();
-                Log.v(LOG_TAG, "list of stops found: " + listStops);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-                Log.e(LOG_TAG, "Nearby stations observer error");
-            }
-
-            @Override
-            public void onComplete() {
-                //TODO: iterate through stop points
-            }
-        };
-    }
+//    private DisposableObserver<StationsWithinRadius> getStationsObserver(){
+//        return new DisposableObserver<StationsWithinRadius>(){
+//
+//            @Override
+//            public void onNext(StationsWithinRadius stationsWithinRadius) {
+//                listStops = (ArrayList<StopPoint>)
+//                        stationsWithinRadius.getStopPoints();
+//                Log.v(LOG_TAG, "list of stops found: " + listStops);
+//            }
+//
+//            @Override
+//            public void onError(Throwable e) {
+//                e.printStackTrace();
+//                Log.e(LOG_TAG, "Nearby stations observer error");
+//            }
+//
+//            @Override
+//            public void onComplete() {
+//            }
+//        };
+//    }
 
     //method that returns list of arrivals observer
-    private DisposableObserver<List<NextArrivals>> getArrivalsObserver(){
-        return new DisposableObserver<List<NextArrivals>>(){
+//    private DisposableObserver<List<NextArrivals>> getArrivalsObserver(){
+//        return;
+//    }
 
-            @Override
-            public void onNext(List<NextArrivals> nextTenTrains) {
-                //if at least one arrival is found, proceed
-
-                Collections.sort(nextTenTrains, new CustomComparator());
-                ArrayList<ArrivalLineTime> nextThreeArrivals = new ArrayList<>();
-                int arrivalsNumber = Math.min(nextTenTrains.size(), 3);
-
-                //find first three arrivals
-                for (int j = 0; j < arrivalsNumber; j++) {
-                    NextArrivals foundTrain = nextTenTrains.get(j);
-                    ArrivalLineTime arrival = new ArrivalLineTime
-                            (foundTrain.getLineId(), foundTrain.getLineName(),
-                                    foundTrain.getTimeToStation());
-                    nextThreeArrivals.add(arrival);
-                    //complete the StationArrivals objects
-                    foundDetails.setArrivals(nextThreeArrivals);
-                    Log.d(LOG_TAG, "arrival added" + arrival);
-                }
-                //notify adapter of changes to data
-                mAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                e.printStackTrace();
-                Log.e(LOG_TAG, "Arrivals observable error");
-            }
-
-            @Override
-            public void onComplete() {
-                progressBar.setVisibility(View.GONE);
-                Log.v(LOG_TAG, "Arrivals observable completed");
-            }
-        };
-    }
 
     //onClick methods for adapter
     @Override
@@ -342,7 +401,8 @@ public class MainActivity extends AppCompatActivity implements
                         mRecyclerView.setVisibility(View.VISIBLE);
                         mNoInternetTv.setVisibility(View.GONE);
                         apiService = new RetrofitHelper().getService();
-                        loadDataRxJava(createQueryMap(mLat, mLon));
+                        //loadDataRxJava(createQueryMap(mLat, mLon));
+                        loadDataRxJava();
                     } else {
                         mRecyclerView.setVisibility(View.GONE);
                         mNoInternetTv.setVisibility(View.VISIBLE);
